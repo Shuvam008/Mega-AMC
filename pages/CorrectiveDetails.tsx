@@ -24,7 +24,7 @@ interface RouteParams {
 }
 
 type ParamList = {
-  LocationDetails: RouteParams;
+  CorrectiveDetails: RouteParams;
 };
 
 const getColumnLetter = (index: number): string => {
@@ -32,9 +32,9 @@ const getColumnLetter = (index: number): string => {
   return letters[index] || '';
 };
 
-const LocationDetails = () => {
+const CorrectiveDetails = () => {
   const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<ParamList, 'LocationDetails'>>();
+  const route = useRoute<RouteProp<ParamList, 'CorrectiveDetails'>>();
 
   const locationData = route.params?.location;
   const headers = route.params?.headers;
@@ -44,7 +44,11 @@ const LocationDetails = () => {
   const [selectedDates, setSelectedDates] = useState<Record<number, string>>(
     {},
   );
+   const [selectedTimes, setSelectedTimes] = useState<Record<number, string>>(
+     {},
+   );
   const [showPicker, setShowPicker] = useState<Record<number, boolean>>({});
+  const [showTimePicker, setShowTimePicker] = useState<Record<number, boolean>>({});
 
   const handleDateChange = (
     event: DateTimePickerEvent,
@@ -57,6 +61,18 @@ const LocationDetails = () => {
     }
     setShowPicker(prev => ({...prev, [cellIndex]: false}));
   };
+
+const handleTimePicked = (
+  event: DateTimePickerEvent,
+  time: Date | undefined,
+  cellIndex: number,
+) => {
+  if (event.type === 'set' && time) {
+    const formattedTime = dayjs(time).format('HH:mm'); // Just extract time
+    setSelectedTimes(prev => ({...prev, [cellIndex]: formattedTime}));
+  }
+  setShowTimePicker(prev => ({...prev, [cellIndex]: false}));
+};
 
   const updateCell = async (
     rowIndex: number,
@@ -72,15 +88,15 @@ const LocationDetails = () => {
     //     : '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA';
 
     const sheetIdMap: Record<string, string> = {
-      '1': '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA',
-      '2': '1YjI3yILyl_4oPcSY1cUQwobdm4TTgrEf84qTT7GXKHQ',
-      '3': '1_83jCyTNUCsOBENKFIC367y5l-CPG40vKZraX1hu7gc',
+      '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
+      '2': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
+      '3': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
     };
 
     let sheetId = sheetIdMap[sheet];
 
     await axios.post(
-      'https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec',
+      'https://script.google.com/macros/s/AKfycbyOvGrV0yspKQYtJm1ROuI1OQCJmBvpNaSTzCE3nTzp7wXftjupEWd0TV5gYeOyqWGBEA/exec',
       null,
       {
         params: {
@@ -97,7 +113,30 @@ const LocationDetails = () => {
     if (selectedDate) {
       updateCell(rowIndex, colIndex, selectedDate);
       setSelectedDates(prev => ({...prev, [colIndex]: ''}));
-      navigation.replace('LocationList', {sheet});
+      navigation.replace('CorrectiveList', {sheet});
+    }
+  };
+
+  const handleDoubleUpdate = async (
+    rowIndex: number,
+    dateIndex: number,
+    timeIndex: number,
+    date:string,
+    time:string
+  ) => {
+    // const dateVal = selectedDates[dateIndex];
+    // const timeVal = selectedTimes[timeIndex];
+    console.error('Date : ', date);
+    console.error('Time : ', time);
+    if (date && time) {
+      await updateCell(rowIndex, dateIndex, date);
+      await updateCell(rowIndex, timeIndex, time);
+
+      // Clear inputs
+      setSelectedDates(prev => ({...prev, [dateIndex]: ''}));
+      setSelectedTimes(prev => ({...prev, [timeIndex]: ''}));
+
+      navigation.replace('CorrectiveList', {sheet});
     }
   };
 
@@ -145,19 +184,59 @@ const LocationDetails = () => {
                   <DateTimePicker
                     value={new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display={Platform.OS === 'ios' ? 'default' : 'default'}
                     onChange={(event, date) =>
                       handleDateChange(event, date, cellIndex)
                     }
                   />
                 )}
                 <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() =>
+                    setShowTimePicker(prev => ({...prev, [cellIndex]: true}))
+                  }>
+                  <Text style={styles.dateButtonText}>
+                    {selectedTimes[cellIndex] || 'Select a date'}
+                  </Text>
+                </TouchableOpacity>
+                {showTimePicker[cellIndex] && (
+                  <DateTimePicker
+                    value={new Date()}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'default' : 'default'}
+                    onChange={(event, date) =>
+                      handleTimePicked(event, date, cellIndex)
+                    }
+                  />
+                )}
+                {/* <TouchableOpacity
                   style={[
                     styles.updateButton,
                     !selectedDates[cellIndex] && styles.disabledButton,
                   ]}
                   onPress={() => handleUpdate(Index, cellIndex)}
                   disabled={!selectedDates[cellIndex]}>
+                  <Text style={styles.updateButtonText}>Update</Text>
+                </TouchableOpacity> */}
+                <TouchableOpacity
+                  style={[
+                    styles.updateButton,
+                    !(
+                      selectedDates[cellIndex] && selectedTimes[cellIndex]
+                    ) && styles.disabledButton,
+                  ]}
+                  onPress={() => {
+                   handleDoubleUpdate(
+                     Index,
+                     cellIndex,
+                     cellIndex + 1,
+                     selectedDates[cellIndex],
+                     selectedTimes[cellIndex],
+                   );
+                  }}
+                  disabled={
+                    !(selectedDates[cellIndex] && selectedTimes[cellIndex])
+                  }>
                   <Text style={styles.updateButtonText}>Update</Text>
                 </TouchableOpacity>
               </View>
@@ -229,4 +308,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LocationDetails;
+export default CorrectiveDetails;

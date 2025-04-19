@@ -12,9 +12,13 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 const HomePage = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
-  const handleNavigate = (sheetId: number) => {
+  const handleNavigate = (sheetId: string) => {
     navigation.navigate('LocationList', {sheet: sheetId});
   };
+
+  const handleNavigateForCORRECTIVE= () => {
+    navigation.navigate('Corrective');
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -55,13 +59,23 @@ const HomePage = () => {
       <View style={styles.main}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate(2)}>
+          onPress={() => handleNavigateForCORRECTIVE()}>
+          <Text style={styles.buttonText}>CORRECTIVE</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => handleNavigate('2')}>
           <Text style={styles.buttonText}>HOWRAH</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate(1)}>
+          onPress={() => handleNavigate('1')}>
           <Text style={styles.buttonText}>SEALDAH</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => handleNavigate('3')}>
+          <Text style={styles.buttonText}>METRO</Text>
         </TouchableOpacity>
       </View>
     </View>

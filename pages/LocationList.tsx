@@ -24,8 +24,9 @@ type LocationListRouteProp = RouteProp<RootStackParamList, 'LocationList'>;
 const LocationList = () => {
   const route = useRoute<LocationListRouteProp>();
   const navigation = useNavigation<LocationListScreenProp>();
-  const sheet = route.params?.sheet || 1;
-
+  // const sheet = route.params?.sheet || 1;
+  const sheet = route.params?.sheet?.toString() || '3';
+  // console.log('Sheet id is >>>', sheet);
 //   const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,9 +40,18 @@ const LocationList = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const sheetIdMap: Record<string, string> = {
+        '1': '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA',
+        '2': '1YjI3yILyl_4oPcSY1cUQwobdm4TTgrEf84qTT7GXKHQ',
+        '3': '1_83jCyTNUCsOBENKFIC367y5l-CPG40vKZraX1hu7gc',
+      };
+
+      let sheetId = sheetIdMap[sheet];
+      
       const response = await axios.get(
-        `https://script.google.com/macros/s/AKfycbw46_igZmzYOFwPXM9owtvrapq7UgtE9IQT-6_jtsIYPd0nqrBsTl8BY-cRsFSVsM9NNQ/exec?sheet=${sheet}`,
+        `https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec?sheet=${sheetId}`,
       );
       const sheetData = response.data;
       setHeaders(sheetData[0]);
