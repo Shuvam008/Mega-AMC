@@ -7,10 +7,10 @@ import { RootStackParamList } from './types';
 import { useNavigation } from '@react-navigation/native';
 
 type CorrectiveScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Corrective'
->;
-const CorrectivePage = () => {
+    RootStackParamList,
+    'Corrective'
+  >;
+  const CorrectivePage = () => {
     const navigation = useNavigation<CorrectiveScreenNavigationProp>();
     const handleNavigate = (sheetId: string) => {
     navigation.navigate('CorrectiveList', {sheet: sheetId});
@@ -19,12 +19,12 @@ const CorrectivePage = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => handleNavigate('2')}>
+        onPress={() => handleNavigate('1')}>
         <Text style={styles.buttonText}>HOWRAH</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => handleNavigate('1')}>
+        onPress={() => handleNavigate('2')}>
         <Text style={styles.buttonText}>SEALDAH</Text>
       </TouchableOpacity>
       <TouchableOpacity

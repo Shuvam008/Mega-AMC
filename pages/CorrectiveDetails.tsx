@@ -1,16 +1,20 @@
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
 import {
+  ActivityIndicator,
+  BackHandler,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useState} from 'react';
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import React, {useCallback, useState} from 'react';
+import {RouteProp, useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -40,38 +44,32 @@ const CorrectiveDetails = () => {
   const headers = route.params?.headers;
   const Index = route.params?.index;
   const sheet = route.params?.sheet?.toString() || '1';
+  const [loading, setLoading] = useState(false);
 
-  const [selectedDates, setSelectedDates] = useState<Record<number, string>>(
-    {},
-  );
-   const [selectedTimes, setSelectedTimes] = useState<Record<number, string>>(
-     {},
-   );
-  const [showPicker, setShowPicker] = useState<Record<number, boolean>>({});
-  const [showTimePicker, setShowTimePicker] = useState<Record<number, boolean>>({});
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [ProblemNature, setProblemNature] = useState('');
 
-  const handleDateChange = (
-    event: DateTimePickerEvent,
-    selectedDate: Date | undefined,
-    cellIndex: number,
-  ) => {
-    if (event.type === 'set' && selectedDate) {
-      const isoDate = selectedDate.toISOString().split('T')[0];
-      setSelectedDates(prev => ({...prev, [cellIndex]: isoDate}));
-    }
-    setShowPicker(prev => ({...prev, [cellIndex]: false}));
-  };
 
-const handleTimePicked = (
-  event: DateTimePickerEvent,
-  time: Date | undefined,
-  cellIndex: number,
-) => {
-  if (event.type === 'set' && time) {
-    const formattedTime = dayjs(time).format('HH:mm'); // Just extract time
-    setSelectedTimes(prev => ({...prev, [cellIndex]: formattedTime}));
+const handleDateChange = (event: { type: any; nativeEvent?: { timestamp: number; utcOffset: number; }; }, selected: Date | undefined) => {
+  if (event.type === 'set' && selected) {
+    const formattedDate = selected.toLocaleDateString('en-GB'); // 21/04/2025
+    setSelectedDate(formattedDate);
   }
-  setShowTimePicker(prev => ({...prev, [cellIndex]: false}));
+  setShowPicker(false);
+};
+
+const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number; utcOffset: number; }; }, selected: Date | undefined) => {
+  if (event.type === 'set' && selected) {
+    const formattedTime = selected.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setSelectedTime(formattedTime);
+  }
+  setShowTimePicker(false);
 };
 
   const updateCell = async (
@@ -79,27 +77,24 @@ const handleTimePicked = (
     colIndex: number,
     newValue: string,
   ) => {
-    const row = rowIndex + 1;
+    const row = rowIndex + 4;
     const colLetter = getColumnLetter(colIndex);
     const range = `${colLetter}${row}`;
-    // const sheetId =
-    //   sheet === '2'
-    //     ? '1YjI3yILyl_4oPcSY1cUQwobdm4TTgrEf84qTT7GXKHQ'
-    //     : '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA';
 
     const sheetIdMap: Record<string, string> = {
       '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
-      '2': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
-      '3': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
+      '2': '1qB7Ee0-VOV8pUSYVnhX1qeggnGg_c9ymO2zTqKRa7uQ',
+      '3': '1RQQUlGEvNbE94SSudvaQx5PvS3c3ObgCsbTfqyEd69w',
     };
 
     let sheetId = sheetIdMap[sheet];
 
     await axios.post(
-      'https://script.google.com/macros/s/AKfycbyOvGrV0yspKQYtJm1ROuI1OQCJmBvpNaSTzCE3nTzp7wXftjupEWd0TV5gYeOyqWGBEA/exec',
-      null,
+      'https://script.google.com/macros/s/AKfycbxGdqdvK5jkGPIurOQIoHkI6U5AzVNYXkwjF51fH4Kkcn5WuIgmfetTDNsi9j7fCSu97w/exec',
+      [],
       {
         params: {
+          action: 'updateCell',
           sheetId,
           range,
           value: newValue,
@@ -107,16 +102,23 @@ const handleTimePicked = (
       },
     );
   };
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('Home');
+        return true;
+      };
 
-  const handleUpdate = (rowIndex: number, colIndex: number) => {
-    const selectedDate = selectedDates[colIndex];
-    if (selectedDate) {
-      updateCell(rowIndex, colIndex, selectedDate);
-      setSelectedDates(prev => ({...prev, [colIndex]: ''}));
-      navigation.replace('CorrectiveList', {sheet});
-    }
-  };
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress,
+      );
 
+      return () => {
+        subscription.remove(); // ✅ correct way to remove
+      };
+    }, [navigation]),
+  );
   const handleDoubleUpdate = async (
     rowIndex: number,
     dateIndex: number,
@@ -124,19 +126,18 @@ const handleTimePicked = (
     date:string,
     time:string
   ) => {
-    // const dateVal = selectedDates[dateIndex];
-    // const timeVal = selectedTimes[timeIndex];
-    console.error('Date : ', date);
-    console.error('Time : ', time);
+    setLoading(true);
     if (date && time) {
       await updateCell(rowIndex, dateIndex, date);
       await updateCell(rowIndex, timeIndex, time);
-
+      if (dateIndex>=8) {
+        await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+      }
       // Clear inputs
-      setSelectedDates(prev => ({...prev, [dateIndex]: ''}));
-      setSelectedTimes(prev => ({...prev, [timeIndex]: ''}));
-
-      navigation.replace('CorrectiveList', {sheet});
+     setSelectedDate('');
+     setSelectedTime('');
+     setLoading(false);
+     navigation.replace('CorrectiveList', {sheet});
     }
   };
 
@@ -152,102 +153,220 @@ const handleTimePicked = (
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value);
   };
 
+  const isISOTime = (value: string) => {
+    return (
+      typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.locationTitle}>{locationData[1]}</Text>
-      {locationData.map((cell, cellIndex) =>
-        cellIndex !== 0 ? (
-          <View style={styles.detailItem} key={cellIndex}>
-            <Text style={styles.headerText}>
-              {headers[cellIndex]}:{' '}
-              {/* <Text style={styles.cellText}>{cell || 'N/A'}</Text> */}
-              <Text style={styles.cellText}>
-                {cell
-                  ? isISODate(cell)
-                    ? dayjs(cell).format('DD/MM/YYYY')
-                    : cell
-                  : 'N/A'}
-              </Text>
-            </Text>
-            {cellIndex >= 2 && !cell && (
-              <View style={styles.inputSection}>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() =>
-                    setShowPicker(prev => ({...prev, [cellIndex]: true}))
-                  }>
-                  <Text style={styles.dateButtonText}>
-                    {selectedDates[cellIndex] || 'Select a date'}
-                  </Text>
-                </TouchableOpacity>
-                {showPicker[cellIndex] && (
-                  <DateTimePicker
-                    value={new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'default' : 'default'}
-                    onChange={(event, date) =>
-                      handleDateChange(event, date, cellIndex)
-                    }
-                  />
-                )}
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() =>
-                    setShowTimePicker(prev => ({...prev, [cellIndex]: true}))
-                  }>
-                  <Text style={styles.dateButtonText}>
-                    {selectedTimes[cellIndex] || 'Select a date'}
-                  </Text>
-                </TouchableOpacity>
-                {showTimePicker[cellIndex] && (
-                  <DateTimePicker
-                    value={new Date()}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'default' : 'default'}
-                    onChange={(event, date) =>
-                      handleTimePicked(event, date, cellIndex)
-                    }
-                  />
-                )}
-                {/* <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    !selectedDates[cellIndex] && styles.disabledButton,
-                  ]}
-                  onPress={() => handleUpdate(Index, cellIndex)}
-                  disabled={!selectedDates[cellIndex]}>
-                  <Text style={styles.updateButtonText}>Update</Text>
-                </TouchableOpacity> */}
-                <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    !(
-                      selectedDates[cellIndex] && selectedTimes[cellIndex]
-                    ) && styles.disabledButton,
-                  ]}
-                  onPress={() => {
-                   handleDoubleUpdate(
-                     Index,
-                     cellIndex,
-                     cellIndex + 1,
-                     selectedDates[cellIndex],
-                     selectedTimes[cellIndex],
-                   );
-                  }}
-                  disabled={
-                    !(selectedDates[cellIndex] && selectedTimes[cellIndex])
-                  }>
-                  <Text style={styles.updateButtonText}>Update</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+      <Modal transparent={true} visible={loading}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loaderBox}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.loadingText}>Submitting...</Text>
           </View>
-        ) : null,
+        </View>
+      </Modal>
+
+      <Text style={styles.locationTitle}>{locationData[1]}</Text>
+
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>
+          {headers[1]} : <Text style={styles.cellText}>{locationData[1]}</Text>
+        </Text>
+      </View>
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>
+          {headers[2]} : <Text style={styles.cellText}>{locationData[2]}</Text>
+        </Text>
+      </View>
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>
+          {headers[3]} : <Text style={styles.cellText}>{locationData[3]}</Text>
+        </Text>
+      </View>
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>
+          Rectification Date & Time :{' '}
+          <Text style={styles.cellText}>
+            {locationData[4]
+              ? isISODate(locationData[4])
+                ? dayjs(locationData[4]).format('DD/MM/YYYY')
+                : locationData[4]
+              : 'N/A'}
+            {' - '}
+            {locationData[5]
+              ? isISOTime(locationData[5])
+                ? dayjs(locationData[5]).format('HH:mm')
+                : locationData[5]
+              : 'N/A'}
+          </Text>
+        </Text>
+      </View>
+
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>Attend Date & Time: </Text>
+
+        {!locationData[6] && !locationData[7] ? (
+          <View style={styles.inputSection}>
+            {/* Date Picker Button */}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowPicker(true)}>
+              <Text style={styles.dateButtonText}>
+                {selectedDate || 'Select a date'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Date Picker Modal */}
+            {showPicker && (
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'default' : 'default'}
+                onChange={(event, date) => handleDateChange(event, date)}
+              />
+            )}
+
+            {/* Time Picker Button */}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowTimePicker(true)}>
+              <Text style={styles.dateButtonText}>
+                {selectedTime || 'Select a time'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Time Picker Modal */}
+            {showTimePicker && (
+              <DateTimePicker
+                value={new Date()}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'default' : 'default'}
+                onChange={(event, date) => handleTimePicked(event, date)}
+              />
+            )}
+
+            {/* Update Button */}
+            <TouchableOpacity
+              style={[
+                styles.updateButton,
+                !(selectedDate && selectedTime) && styles.disabledButton,
+              ]}
+              onPress={() =>
+                handleDoubleUpdate(Index, 6, 7, selectedDate, selectedTime)
+              }
+              disabled={!(selectedDate && selectedTime)}>
+              <Text style={styles.updateButtonText}>Update</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // If data exists, show existing date/time
+          <Text style={styles.cellText}>
+            {locationData[6]
+              ? isISODate(locationData[6])
+                ? dayjs(locationData[6]).format('DD/MM/YYYY')
+                : locationData[6]
+              : 'N/A'}
+            {' - '}
+            {locationData[7]
+              ? isISOTime(locationData[7])
+                ? dayjs(locationData[7]).format('HH:mm')
+                : locationData[7]
+              : 'N/A'}
+          </Text>
+        )}
+      </View>
+
+      {locationData[6] && locationData[7] && (
+        <View style={styles.detailItem}>
+          <Text style={styles.headerText}>Rectification Date & Time: </Text>
+
+          {!locationData[8] && !locationData[9] ? (
+            <View style={styles.inputSection}>
+              {/* Date Picker Button */}
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowPicker(true)}>
+                <Text style={styles.dateButtonText}>
+                  {selectedDate || 'Select a date'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Date Picker Modal */}
+              {showPicker && (
+                <DateTimePicker
+                  value={new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'default' : 'default'}
+                  onChange={(event, date) => handleDateChange(event, date)}
+                />
+              )}
+
+              {/* Time Picker Button */}
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowTimePicker(true)}>
+                <Text style={styles.dateButtonText}>
+                  {selectedTime || 'Select a time'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Time Picker Modal */}
+              {showTimePicker && (
+                <DateTimePicker
+                  value={new Date()}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'default' : 'default'}
+                  onChange={(event, date) => handleTimePicked(event, date)}
+                />
+              )}
+              <TextInput
+                style={styles.input}
+                placeholder="Nature of Problem"
+                value={ProblemNature}
+                onChangeText={text => {
+                  // console.log('ProblemNature input:', text); // <-- Check what's actually typed
+                  setProblemNature(text);
+                }}
+              />
+              {/* Update Button */}
+              <TouchableOpacity
+                style={[
+                  styles.updateButton,
+                  !(selectedDate && selectedTime && ProblemNature) &&
+                    styles.disabledButton,
+                ]}
+                onPress={() =>
+                  handleDoubleUpdate(Index, 8, 9, selectedDate, selectedTime)
+                }
+                disabled={!(selectedDate && selectedTime && ProblemNature)}>
+                <Text style={styles.updateButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            // If data exists, show existing date/time
+            <Text style={styles.cellText}>
+              {locationData[8]
+                ? isISODate(locationData[8])
+                  ? dayjs(locationData[8]).format('DD/MM/YYYY')
+                  : locationData[8]
+                : 'N/A'}
+              {' - '}
+              {locationData[9]
+                ? isISOTime(locationData[9])
+                  ? dayjs(locationData[9]).format('HH:mm')
+                  : locationData[9]
+                : 'N/A'}
+            </Text>
+          )}
+        </View>
       )}
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     padding: 16,
@@ -260,7 +379,17 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     textAlign: 'center',
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#aaa',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+  },
   detailItem: {
+    // display: 'flex',
+    // flexDirection: 'row',
     backgroundColor: '#f8f8f8',
     borderRadius: 10,
     padding: 16,
@@ -304,6 +433,23 @@ const styles = StyleSheet.create({
   },
   updateButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderBox: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginLeft: 10,
     fontSize: 16,
   },
 });

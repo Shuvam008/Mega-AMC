@@ -16,4 +16,5 @@ export type RootStackParamList = {
     index: number;
     sheet: string;
   };
+  NewDocket: any;
 };
