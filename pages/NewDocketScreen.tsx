@@ -1,10 +1,12 @@
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,7 +15,7 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import Autocomplete from 'react-native-autocomplete-input';
@@ -41,35 +43,124 @@ type NewDocketRouteProp = RouteProp<RootStackParamList, 'CorrectiveList'>;
 const NewDocketScreen = () => {
   const route = useRoute<NewDocketRouteProp>();
   const navigation = useNavigation<NewDocketProp>();
-  const [serialNo, setSerialNo] = useState('');
+
   const sheet = route.params?.sheet?.toString() || '1';
 
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [showPicker, setShowPicker] = useState(false);
+  // const [showPicker, setShowPicker] = useState(false);
+  // const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showCreationDatePicker, setShowCreationDatePicker] = useState(false);
+  const [showCreationTimePicker, setShowCreationTimePicker] = useState(false);
 
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showAttendDatePicker, setShowAttendDatePicker] = useState(false);
+  const [showAttendTimePicker, setShowAttendTimePicker] = useState(false);
 
+  const [showRectificationDatePicker, setShowRectificationDatePicker] = useState(false);
+  const [showRectificationTimePicker, setShowRectificationTimePicker] = useState(false);
+
+
+  const [serialNo, setSerialNo] = useState('');
+  const [selectedCreationDate, setSelectedCreationDate] = useState<string>('');
+  const [selectedCreationTime, setSelectedCreationTime] = useState<string>('');
+  const [selectedProblem, setSelectedProblem] = useState('');
+  const [otherText, setOtherText] = useState('');
   const [query, setQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState(['']);
 
-  const [selectedProblem, setSelectedProblem] = useState('');
-  const [otherText, setOtherText] = useState('');
+  const [attendDate, setAttendDate] = useState('');
+  const [attendTime, setAttendTime] = useState('');
 
+  const [rectificationDate, setrectificationDate] = useState('');
+  const [rectificationTime, setrectificationTime] = useState('');
+  const [remarks, setRemarks] = useState('');
+
+  // Toggle switches
+  const [showAttend, setShowAttend] = useState(false);
+  const [showRectification, setShowRectification] = useState(false);
+
+   // Enable switch logic
+  const [canEnableAttendSwitch, setCanEnableAttendSwitch] = useState(false);
+  const [canEnableRectificationSwitch, setCanEnableRectificationSwitch] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [loading1, setLoading1] = useState(false);
   const [stations, setStations] = useState(['']);
-  
+
+
+    useEffect(() => {
+      if (
+        query &&
+        selectedProblem &&
+        serialNo &&
+        selectedCreationDate &&
+        selectedCreationTime
+      ) {
+        setCanEnableAttendSwitch(true);
+      } else {
+        setAttendDate('');
+        setAttendTime('');
+        setCanEnableAttendSwitch(false);
+        setShowAttend(false);
+      }
+      
+    }, [
+      query,
+      selectedProblem,
+      serialNo,
+      selectedCreationDate,
+      selectedCreationTime,
+      ,
+    ]);
+
+    useEffect(() => {
+      if (canEnableAttendSwitch && attendDate && attendTime) {
+        setCanEnableRectificationSwitch(true);
+      } else {
+        setRemarks('');
+        setrectificationDate('');
+        setrectificationTime('');
+        setCanEnableRectificationSwitch(false);
+        setShowRectification(false);
+      }
+      
+    }, [attendDate, attendTime]);
+    useEffect(() => {
+      if (false == showRectification) {
+        setRemarks('');
+        setrectificationDate('');
+        setrectificationTime('');
+      }
+      if (false == showAttend) {
+        setAttendDate('');
+        setAttendTime('');
+      }
+    }, [showAttend, showRectification]);
+    
   const handleSubmit = async () => {
     if (
       !query ||
       !selectedProblem ||
       !serialNo ||
-      !selectedDate ||
-      !selectedTime
+      !selectedCreationDate ||
+      !selectedCreationTime
     ) {
       Alert.alert('Error', 'Please fill all fields');
       return;
+    }
+    if (showAttend) {
+      if (
+          !attendDate ||
+          !attendTime
+        ) {
+          Alert.alert('Error', 'Please fill all fields');
+          return;
+      }
+    }
+
+    if (showRectification) {
+      if (!rectificationDate || !rectificationTime || !remarks) {
+        Alert.alert('Error', 'Please fill all fields');
+        return;
+      }
     }
 
     setLoading(true);
@@ -87,8 +178,13 @@ const NewDocketScreen = () => {
         query,
         selectedProblem == 'OTHER' ? otherText : selectedProblem,
         serialNo,
-        selectedDate,
-        selectedTime,
+        selectedCreationDate,
+        selectedCreationTime,
+        attendDate,
+        attendTime,
+        rectificationDate,
+        rectificationTime,
+        remarks,
       ]);
       console.log(values);
       const res = await axios.post(
@@ -107,8 +203,8 @@ const NewDocketScreen = () => {
       setQuery('');
       setSelectedProblem('');
       setSerialNo('');
-      setSelectedDate('');
-      setSelectedTime('');
+      setSelectedCreationDate('');
+      setSelectedCreationTime('');
       setOtherText('');
     } catch (err) {
       Alert.alert('Error', 'Failed to submit docket');
@@ -119,28 +215,39 @@ const NewDocketScreen = () => {
     }
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (event.type === 'set' && selectedDate) {
-      const day = selectedDate.getDate().toString().padStart(2, '0');
-      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-      const year = selectedDate.getFullYear();
+const handleDateChange = (
+  event: DateTimePickerEvent,
+  selectedDate?: Date,
+  setter?: (val: string) => void,
+  closePicker?: () => void,
+) => {
+  if (event.type === 'set' && selectedDate && setter) {
+    const day = selectedDate.getDate().toString().padStart(2, '0');
+    const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = selectedDate.getFullYear();
 
-      const formattedDate = `${day}/${month}/${year}`;
-      setSelectedDate(formattedDate); // assuming you're using one date state
-    }
-    setShowPicker(false);
-  };
-  const handleTimeChange = (
-    event: DateTimePickerEvent,
-    selectedTimeParam?: Date,
-  ) => {
-    if (event.type === 'set' && selectedTimeParam) {
-      const hours = selectedTimeParam.getHours().toString().padStart(2, '0');
-      const minutes = selectedTimeParam.getMinutes().toString().padStart(2, '0');
-      setSelectedTime(`${hours}:${minutes}`);
-    }
-    setShowTimePicker(false);
-  };
+    const formattedDate = `${day}/${month}/${year}`;
+    setter(formattedDate);
+  }
+  if (closePicker) closePicker();
+};
+
+const handleTimeChange = (
+  event: DateTimePickerEvent,
+  selectedTime?: Date,
+  setter?: (val: string) => void,
+  closePicker?: () => void,
+) => {
+  if (event.type === 'set' && selectedTime && setter) {
+    const hours = selectedTime.getHours().toString().padStart(2, '0');
+    const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+
+    const formattedTime = `${hours}:${minutes}`;
+    setter(formattedTime);
+  }
+  if (closePicker) closePicker();
+};
+
   const handleSearch = (text: string) => {
     setQuery(text);
     const filtered = stations.filter(station =>
@@ -172,7 +279,7 @@ const NewDocketScreen = () => {
       );
       const sheetData = response.data;
       console.log(sheetData);
-      
+
       setStations(sheetData.slice(1).map((row: String[]) => row[1]));
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -186,135 +293,321 @@ const NewDocketScreen = () => {
     }, []),
   );
   return (
-    <View style={styles.container}>
-      {/* <Text style={styles.heading}>New Docket Entry</Text> */}
-      <Modal transparent={true} visible={loading}>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={styles.loadingText}>Submitting...</Text>
-          </View>
-        </View>
-      </Modal>
-      {loading1 ? (
-        <View style={styles.spinnerWrapper}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text>Loading data...</Text>
-        </View>
-      ) : (
+    <FlatList
+      style={styles.container}
+      ListHeaderComponent={
         <>
-          {sheet == '1' ? (
-            <Text style={styles.locationTitle}>HOWRAH DIVISION</Text>
-          ) : sheet == '2' ? (
-            <Text style={styles.locationTitle}>SEALDAH DIVISION</Text>
+          {/* <Text style={styles.heading}>New Docket Entry</Text> */}
+          <Modal transparent={true} visible={loading}>
+            <View style={styles.loadingContainer}>
+              <View style={styles.loaderBox}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text style={styles.loadingText}>Submitting...</Text>
+              </View>
+            </View>
+          </Modal>
+          {loading1 ? (
+            <View style={styles.spinnerWrapper}>
+              <ActivityIndicator size="large" color="#007bff" />
+              <Text>Loading data...</Text>
+            </View>
           ) : (
-            <Text style={styles.locationTitle}>METRO DIVISION</Text>
-          )}
-          <View style={styles.autocompleteContainer}>
-            <Autocomplete
-              data={filteredStations}
-              defaultValue={query}
-              onChangeText={handleSearch}
-              placeholder="Station (e.g. HOWRAH)"
-              placeholderTextColor="#333"
-              hideResults={filteredStations.length === 0 || query.trim() === ''}
-              flatListProps={{
-                keyExtractor: (_, idx) => idx.toString(),
-                renderItem: ({item}) => (
-                  <TouchableOpacity onPress={() => handleSelect(item)}>
-                    <Text style={styles.itemText}>{item}</Text>
-                  </TouchableOpacity>
-                ),
-                style: styles.list,
-              }}
-              inputContainerStyle={styles.inputContainer}
-              listContainerStyle={styles.listContainer}
-            />
-          </View>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Serial Number"
-            placeholderTextColor="#333"
-            value={serialNo}
-            onChangeText={setSerialNo}
-          />
-
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={selectedProblem}
-              onValueChange={itemValue => setSelectedProblem(itemValue)}
-              style={styles.picker}>
-              <Picker.Item label="Select a fault" value="" color="#333" />
-              {problems.map((problem, idx) => (
-                <Picker.Item
-                  label={problem}
-                  value={problem}
-                  key={idx}
-                  color="#333"
+            <>
+              {sheet == '1' ? (
+                <Text style={styles.locationTitle}>HOWRAH DIVISION</Text>
+              ) : sheet == '2' ? (
+                <Text style={styles.locationTitle}>SEALDAH DIVISION</Text>
+              ) : (
+                <Text style={styles.locationTitle}>METRO DIVISION</Text>
+              )}
+              <View style={styles.autocompleteContainer}>
+                <Autocomplete
+                  data={filteredStations}
+                  defaultValue={query}
+                  onChangeText={handleSearch}
+                  placeholder="Station (e.g. HOWRAH)"
+                  placeholderTextColor="#333"
+                  hideResults={
+                    filteredStations.length === 0 || query.trim() === ''
+                  }
+                  flatListProps={{
+                    keyExtractor: (_, idx) => idx.toString(),
+                    renderItem: ({item}) => (
+                      <TouchableOpacity onPress={() => handleSelect(item)}>
+                        <Text style={styles.itemText}>{item}</Text>
+                      </TouchableOpacity>
+                    ),
+                    style: styles.list,
+                  }}
+                  inputContainerStyle={styles.inputContainer}
+                  listContainerStyle={styles.listContainer}
                 />
-              ))}
-              {/* <Picker.Item label="Other" value="OTHER" color="#333" /> */}
-            </Picker>
-          </View>
-
-          {selectedProblem === 'OTHER' && (
-            <TextInput
-              style={styles.input}
-              placeholder="Describe your issue"
-              placeholderTextColor="#333"
-              value={otherText}
-              onChangeText={setOtherText}
-            />
-          )}
-
-          {/* <TextInput
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Serial Number"
+                placeholderTextColor="#333"
+                value={serialNo}
+                onChangeText={setSerialNo}
+              />
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedProblem}
+                  onValueChange={itemValue => setSelectedProblem(itemValue)}
+                  style={styles.picker}>
+                  <Picker.Item label="Select a fault" value="" color="#333" />
+                  {problems.map((problem, idx) => (
+                    <Picker.Item
+                      label={problem}
+                      value={problem}
+                      key={idx}
+                      color="#333"
+                    />
+                  ))}
+                  {/* <Picker.Item label="Other" value="OTHER" color="#333" /> */}
+                </Picker>
+              </View>
+              {selectedProblem === 'OTHER' && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Describe your issue"
+                  placeholderTextColor="#333"
+                  value={otherText}
+                  onChangeText={setOtherText}
+                />
+              )}
+              {/* <TextInput
         style={styles.input}
         placeholder="Date (e.g. 30.01.2025)"
         value={date}
         onChangeText={setDate}
       /> */}
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowPicker(true)}>
-            <Text style={styles.dateButtonText}>
-              {selectedDate || 'Select a date'}
-            </Text>
-          </TouchableOpacity>
 
-          {showPicker && (
-            <DateTimePicker
-              value={selectedDate ? new Date(selectedDate) : new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={handleDateChange}
-            />
+              {/* Docket Creation Container */}
+              <View>
+                <Text
+                  style={{marginBottom: 5, fontSize: 14, fontWeight: 'bold'}}>
+                  Docket Creation Date / Time
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowCreationDatePicker(true)}>
+                  <Text style={styles.dateButtonText}>
+                    {selectedCreationDate || 'Select a date'}
+                  </Text>
+                </TouchableOpacity>
+
+                {showCreationDatePicker && (
+                  <DateTimePicker
+                    value={new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={(event, date) =>
+                      handleDateChange(
+                        event,
+                        date,
+                        setSelectedCreationDate,
+                        () => setShowCreationDatePicker(false),
+                      )
+                    }
+                  />
+                )}
+
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowCreationTimePicker(true)}>
+                  <Text style={styles.dateButtonText}>
+                    {selectedCreationTime || 'Select time'}
+                  </Text>
+                </TouchableOpacity>
+
+                {showCreationTimePicker && (
+                  <DateTimePicker
+                    value={new Date()}
+                    mode="time"
+                    is24Hour={false}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, time) =>
+                      handleTimeChange(
+                        event,
+                        time,
+                        setSelectedCreationTime,
+                        () => setShowCreationTimePicker(false),
+                      )
+                    }
+                  />
+                )}
+              </View>
+
+              {/* Attend Toggle */}
+              <View
+                style={{
+                  height: 50,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                <Text>Same Day Attend</Text>
+                <Switch
+                  value={showAttend}
+                  onValueChange={setShowAttend}
+                  disabled={!canEnableAttendSwitch}
+                  thumbColor={canEnableAttendSwitch ? 'green' : 'red'}
+                  trackColor={{false: '#ff8080', true: '#80ff80'}}
+                />
+              </View>
+
+              {/* Docket Attend Container */}
+              {showAttend && (
+                <View>
+                  <Text
+                    style={{marginBottom: 5, fontSize: 14, fontWeight: 'bold'}}>
+                    Docket Attend Date / Time
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowAttendDatePicker(true)}>
+                    <Text style={styles.dateButtonText}>
+                      {attendDate || 'Select a date'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showAttendDatePicker && (
+                    <DateTimePicker
+                      value={new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={(event, date) =>
+                        handleDateChange(event, date, setAttendDate, () =>
+                          setShowAttendDatePicker(false),
+                        )
+                      }
+                    />
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowAttendTimePicker(true)}>
+                    <Text style={styles.dateButtonText}>
+                      {attendTime || 'Select time'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showAttendTimePicker && (
+                    <DateTimePicker
+                      value={new Date()}
+                      mode="time"
+                      is24Hour={false}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, time) =>
+                        handleTimeChange(event, time, setAttendTime, () =>
+                          setShowAttendTimePicker(false),
+                        )
+                      }
+                    />
+                  )}
+                </View>
+              )}
+
+              {/* Rectification Toggle */}
+              <View
+                style={{
+                  height: 50,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                <Text>Same Day Rectification</Text>
+                <Switch
+                  value={showRectification}
+                  onValueChange={setShowRectification}
+                  disabled={!canEnableRectificationSwitch}
+                  thumbColor={canEnableRectificationSwitch ? 'green' : 'red'}
+                  trackColor={{false: '#ff8080', true: '#80ff80'}}
+                />
+              </View>
+              {/* Docket Rectification Container */}
+              {showRectification && (
+                <View>
+                  <Text
+                    style={{marginBottom: 5, fontSize: 14, fontWeight: 'bold'}}>
+                    Docket Rectification Date / Time
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowRectificationDatePicker(true)}>
+                    <Text style={styles.dateButtonText}>
+                      {rectificationDate || 'Select a date'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showRectificationDatePicker && (
+                    <DateTimePicker
+                      value={new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={(event, date) =>
+                        handleDateChange(
+                          event,
+                          date,
+                          setrectificationDate,
+                          () => setShowRectificationDatePicker(false),
+                        )
+                      }
+                    />
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowRectificationTimePicker(true)}>
+                    <Text style={styles.dateButtonText}>
+                      {rectificationTime || 'Select time'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showRectificationTimePicker && (
+                    <DateTimePicker
+                      value={new Date()}
+                      mode="time"
+                      is24Hour={false}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, time) =>
+                        handleTimeChange(
+                          event,
+                          time,
+                          setrectificationTime,
+                          () => setShowRectificationTimePicker(false),
+                        )
+                      }
+                    />
+                  )}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nature of Problem"
+                    placeholderTextColor="#333"
+                    value={remarks}
+                    onChangeText={setRemarks}
+                  />
+                </View>
+              )}
+
+              {/* <View style={{flex: 1}}></View> */}
+              <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+                <Text style={styles.buttonText}>Submit Docket</Text>
+              </TouchableOpacity>
+              <View style={{height: 40}}></View>
+            </>
           )}
-
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowTimePicker(true)}>
-            <Text style={styles.dateButtonText}>
-              {selectedTime || 'Select time'}
-            </Text>
-          </TouchableOpacity>
-
-          {showTimePicker && (
-            <DateTimePicker
-              value={new Date()}
-              mode="time"
-              is24Hour={false} // change to true if you want 24-hour format
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleTimeChange}
-            />
-          )}
-          <View style={{flex: 1}}></View>
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Submit Docket</Text>
-          </TouchableOpacity>
         </>
-      )}
-    </View>
+      }
+      data={[]} // No actual list data
+      renderItem={null}
+      keyExtractor={() => 'dummy'} // Required even if no list
+    />
   );
 };
 
@@ -323,9 +616,8 @@ export default NewDocketScreen;
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    paddingTop: 50,
     backgroundColor: '#fff',
-    flexGrow: 1,
+    // flexGrow: 1,
   },
   spinnerWrapper: {
     flex: 1,
@@ -401,11 +693,11 @@ const styles = StyleSheet.create({
 
   listContainer: {
     position: 'absolute',
-    top: 42, // position below the input
+    top: 50, // position below the input
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    zIndex: 20,
+    // zIndex: 2000,
     borderWidth: 0,
   },
 
@@ -414,6 +706,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderWidth: 1,
     borderRadius: 10,
+    zIndex: 2000,
     borderColor: '#ccc',
   },
 
