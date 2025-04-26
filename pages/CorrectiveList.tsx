@@ -166,60 +166,78 @@ const renderItem = ({item, index}: {item: string[]; index: number}) => (
         sheet,
       })
     }>
-    
+    <View style={{flexDirection: 'row',justifyContent:'space-between',alignItems:'center'}}>
       <Text style={styles.cardTitle}>{item[1]}</Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Problem:</Text> {item[2]}
-      </Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Serial No:</Text> {item[3]}
-      </Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Reported:</Text>{' '}
-        {item[4]
-          ? isISODate(item[4])
-            ? dayjs(item[4]).format('DD/MM/YYYY')
-            : item[4]
-          : 'N/A'}
-        {' - '}
-        {item[5]
-          ? isISOTime(item[5])
-            ? dayjs(item[5]).format('HH:mm')
-            : item[5]
-          : 'N/A'}
-      </Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Attended:</Text>{' '}
-        {item[6]
-          ? isISODate(item[6])
-            ? dayjs(item[6]).format('DD/MM/YYYY')
-            : item[6]
-          : 'N/A'}
-        {' - '}
-        {item[7]
-          ? isISOTime(item[7])
-            ? dayjs(item[7]).format('HH:mm')
-            : item[7]
-          : 'N/A'}
-      </Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Rectified:</Text>{' '}
-        {item[8]
-          ? isISODate(item[8])
-            ? dayjs(item[8]).format('DD/MM/YYYY')
-            : item[8]
-          : 'N/A'}
-        {' - '}
-        {item[9]
-          ? isISOTime(item[9])
-            ? dayjs(item[9]).format('HH:mm')
-            : item[9]
-          : 'N/A'}
-      </Text>
-      <Text style={styles.text}>
-        <Text style={styles.label}>Action:</Text> {item[10]}
-      </Text>
-    
+      <View
+        style={{
+          height: 20,
+          width: 20,
+          backgroundColor:
+            item[2] ||
+            item[3] ||
+            item[4] ||
+            item[5] ||
+            item[6] ||
+            item[7] ||
+            item[8] ||
+            item[9]
+              ? 'green'
+              : 'red',
+          borderRadius: 50,
+          // borderWidth: 1,
+        }}></View>
+    </View>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Problem:</Text> {item[2]}
+    </Text>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Serial No:</Text> {item[3]}
+    </Text>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Reported:</Text>{' '}
+      {item[4]
+        ? isISODate(item[4])
+          ? dayjs(item[4]).format('DD/MM/YYYY')
+          : item[4]
+        : 'N/A'}
+      {' - '}
+      {item[5]
+        ? isISOTime(item[5])
+          ? dayjs(item[5]).format('HH:mm')
+          : item[5]
+        : 'N/A'}
+    </Text>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Attended:</Text>{' '}
+      {item[6]
+        ? isISODate(item[6])
+          ? dayjs(item[6]).format('DD/MM/YYYY')
+          : item[6]
+        : 'N/A'}
+      {' - '}
+      {item[7]
+        ? isISOTime(item[7])
+          ? dayjs(item[7]).format('HH:mm')
+          : item[7]
+        : 'N/A'}
+    </Text>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Rectified:</Text>{' '}
+      {item[8]
+        ? isISODate(item[8])
+          ? dayjs(item[8]).format('DD/MM/YYYY')
+          : item[8]
+        : 'N/A'}
+      {' - '}
+      {item[9]
+        ? isISOTime(item[9])
+          ? dayjs(item[9]).format('HH:mm')
+          : item[9]
+        : 'N/A'}
+    </Text>
+    <Text style={styles.text}>
+      <Text style={styles.label}>Action:</Text> {item[10]}
+    </Text>
   </TouchableOpacity>
 );
   return (
