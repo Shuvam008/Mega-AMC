@@ -173,13 +173,13 @@ const renderItem = ({item, index}: {item: string[]; index: number}) => (
           height: 20,
           width: 20,
           backgroundColor:
-            item[2] ||
-            item[3] ||
-            item[4] ||
-            item[5] ||
-            item[6] ||
-            item[7] ||
-            item[8] ||
+            item[2] &&
+            item[3] &&
+            item[4] &&
+            item[5] &&
+            item[6] &&
+            item[7] &&
+            item[8] &&
             item[9]
               ? 'green'
               : 'red',
