@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from 'react-native';
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -19,7 +20,9 @@ import React, {useCallback, useEffect, useState} from 'react';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import Autocomplete from 'react-native-autocomplete-input';
+import DeviceInfo from 'react-native-device-info';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import NetInfo from '@react-native-community/netinfo';
 import {Picker} from '@react-native-picker/picker';
 import { RootStackParamList } from './types';
 import axios from 'axios';
@@ -43,7 +46,7 @@ type NewDocketRouteProp = RouteProp<RootStackParamList, 'CorrectiveList'>;
 const NewDocketScreen = () => {
   const route = useRoute<NewDocketRouteProp>();
   const navigation = useNavigation<NewDocketProp>();
-
+  const colorScheme = useColorScheme();
   const sheet = route.params?.sheet?.toString() || '1';
 
   // const [showPicker, setShowPicker] = useState(false);
@@ -86,9 +89,12 @@ const NewDocketScreen = () => {
   const [stations, setStations] = useState(['']);
 
 
+  const [submitStation, setSubmitStation] = useState('');
+  const [creationDateObj, setCreationDateObj] = useState<Date | null>(null);
+  const [attendDateObj, setAttendDateObj] = useState<Date | null>(null);
     useEffect(() => {
       if (
-        query &&
+        submitStation &&
         selectedProblem &&
         serialNo &&
         selectedCreationDate &&
@@ -101,9 +107,8 @@ const NewDocketScreen = () => {
         setCanEnableAttendSwitch(false);
         setShowAttend(false);
       }
-      
     }, [
-      query,
+      submitStation,
       selectedProblem,
       serialNo,
       selectedCreationDate,
@@ -137,13 +142,16 @@ const NewDocketScreen = () => {
     
   const handleSubmit = async () => {
     if (
-      !query ||
+      !submitStation ||
       !selectedProblem ||
       !serialNo ||
       !selectedCreationDate ||
       !selectedCreationTime
     ) {
       Alert.alert('Error', 'Please fill all fields');
+      if (!submitStation) {
+         Alert.alert('Error', 'Please fill Station Name');
+      }
       return;
     }
     if (showAttend) {
@@ -175,7 +183,7 @@ const NewDocketScreen = () => {
 
     try {
       const values = JSON.stringify([
-        query,
+        submitStation,
         selectedProblem == 'OTHER' ? otherText : selectedProblem,
         serialNo,
         selectedCreationDate,
@@ -185,6 +193,7 @@ const NewDocketScreen = () => {
         rectificationDate,
         rectificationTime,
         remarks,
+        await DeviceInfo.getDeviceName(),
       ]);
       console.log(values);
       const res = await axios.post(
@@ -201,16 +210,26 @@ const NewDocketScreen = () => {
         },
       );
       setQuery('');
+      setSubmitStation('');
       setSelectedProblem('');
       setSerialNo('');
       setSelectedCreationDate('');
       setSelectedCreationTime('');
       setOtherText('');
     } catch (err) {
-      Alert.alert('Error', 'Failed to submit docket');
+      Alert.alert('Error', 'Docket Submit failed');
       console.log(err);
     } finally {
-      Alert.alert('Success', 'Docket submitted successfully');
+      const netState = await NetInfo.fetch();
+        if (!netState.isConnected) {
+          Alert.alert(
+            'No Internet',
+            'Please connect to the internet before submitting.',
+          );
+        }else{
+            Alert.alert('Success', 'Docket submitted successfully');
+        }
+      
       setLoading(false); // 👉 hide loader
     }
   };
@@ -220,6 +239,7 @@ const handleDateChange = (
   selectedDate?: Date,
   setter?: (val: string) => void,
   closePicker?: () => void,
+  type?: 'creation' | 'attend' | 'rectify',
 ) => {
   if (event.type === 'set' && selectedDate && setter) {
     const day = selectedDate.getDate().toString().padStart(2, '0');
@@ -227,6 +247,19 @@ const handleDateChange = (
     const year = selectedDate.getFullYear();
 
     const formattedDate = `${day}/${month}/${year}`;
+
+    if (type === 'creation') {
+      setCreationDateObj(selectedDate);
+      setAttendDate(''); // reset attend if creation changes
+      setAttendDateObj(null);
+      setrectificationDate('');
+    }
+
+    if (type === 'attend') {
+      setAttendDateObj(selectedDate);
+      setrectificationDate('');
+    }
+
     setter(formattedDate);
   }
   if (closePicker) closePicker();
@@ -250,6 +283,7 @@ const handleTimeChange = (
 
   const handleSearch = (text: string) => {
     setQuery(text);
+    setSubmitStation('');
     const filtered = stations.filter(station =>
       station.toLowerCase().includes(text.toLowerCase()),
     );
@@ -258,6 +292,7 @@ const handleTimeChange = (
 
   const handleSelect = (station: string) => {
     setQuery(station);
+    setSubmitStation(station);
     setFilteredStations([]);
   };
 
@@ -355,13 +390,17 @@ const handleTimeChange = (
                   selectedValue={selectedProblem}
                   onValueChange={itemValue => setSelectedProblem(itemValue)}
                   style={styles.picker}>
-                  <Picker.Item label="Select a fault" value="" color="#333" />
+                  <Picker.Item
+                    label="Select a fault"
+                    value=""
+                    color={colorScheme === 'dark' ? '#fff' : '#333'}
+                  />
                   {problems.map((problem, idx) => (
                     <Picker.Item
                       label={problem}
                       value={problem}
                       key={idx}
-                      color="#333"
+                      color={colorScheme === 'dark' ? '#fff' : '#333'}
                     />
                   ))}
                   {/* <Picker.Item label="Other" value="OTHER" color="#333" /> */}
@@ -409,6 +448,7 @@ const handleTimeChange = (
                         date,
                         setSelectedCreationDate,
                         () => setShowCreationDatePicker(false),
+                        'creation',
                       )
                     }
                   />
@@ -479,9 +519,14 @@ const handleTimeChange = (
                       value={new Date()}
                       mode="date"
                       display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      minimumDate={creationDateObj ?? undefined}
                       onChange={(event, date) =>
-                        handleDateChange(event, date, setAttendDate, () =>
-                          setShowAttendDatePicker(false),
+                        handleDateChange(
+                          event,
+                          date,
+                          setAttendDate,
+                          () => setShowAttendDatePicker(false),
+                          'attend',
                         )
                       }
                     />
@@ -549,12 +594,14 @@ const handleTimeChange = (
                       value={new Date()}
                       mode="date"
                       display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      minimumDate={attendDateObj ?? undefined}
                       onChange={(event, date) =>
                         handleDateChange(
                           event,
                           date,
                           setrectificationDate,
                           () => setShowRectificationDatePicker(false),
+                          'rectify',
                         )
                       }
                     />

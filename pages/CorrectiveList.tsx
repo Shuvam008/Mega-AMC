@@ -263,12 +263,12 @@ const renderItem = ({item, index}: {item: string[]; index: number}) => (
               <Text style={styles.buttonText}>+</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
+          {filteredData.length > 0 ?(<FlatList
             data={filteredData}
             renderItem={renderItem}
             keyExtractor={(item, index) => index.toString()}
             contentContainerStyle={{paddingBottom: 50}}
-          />
+          />):<View style={{alignItems:'center'}}><Text>No Data found</Text></View>}
         </View>
       )}
     </View>
