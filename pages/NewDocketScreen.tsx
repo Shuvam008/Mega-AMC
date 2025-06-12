@@ -66,6 +66,7 @@ const NewDocketScreen = () => {
   const [selectedCreationTime, setSelectedCreationTime] = useState<string>('');
   const [selectedProblem, setSelectedProblem] = useState('');
   const [otherText, setOtherText] = useState('');
+  const [docketNumber, setDocketNumber] = useState('');
   const [query, setQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState(['']);
 
@@ -92,13 +93,16 @@ const NewDocketScreen = () => {
   const [submitStation, setSubmitStation] = useState('');
   const [creationDateObj, setCreationDateObj] = useState<Date | null>(null);
   const [attendDateObj, setAttendDateObj] = useState<Date | null>(null);
-    useEffect(() => {
+
+
+  useEffect(() => {
       if (
         submitStation &&
         selectedProblem &&
         serialNo &&
         selectedCreationDate &&
-        selectedCreationTime
+        selectedCreationTime &&
+        docketNumber
       ) {
         setCanEnableAttendSwitch(true);
       } else {
@@ -109,6 +113,7 @@ const NewDocketScreen = () => {
       }
     }, [
       submitStation,
+      docketNumber,
       selectedProblem,
       serialNo,
       selectedCreationDate,
@@ -116,30 +121,33 @@ const NewDocketScreen = () => {
       ,
     ]);
 
-    useEffect(() => {
-      if (canEnableAttendSwitch && attendDate && attendTime) {
-        setCanEnableRectificationSwitch(true);
-      } else {
-        setRemarks('');
-        setrectificationDate('');
-        setrectificationTime('');
-        setCanEnableRectificationSwitch(false);
-        setShowRectification(false);
-      }
-      
-    }, [attendDate, attendTime]);
-    useEffect(() => {
-      if (false == showRectification) {
-        setRemarks('');
-        setrectificationDate('');
-        setrectificationTime('');
-      }
-      if (false == showAttend) {
-        setAttendDate('');
-        setAttendTime('');
-      }
-    }, [showAttend, showRectification]);
+  useEffect(() => {
+    if (canEnableAttendSwitch && attendDate && attendTime) {
+      setCanEnableRectificationSwitch(true);
+    } else {
+      setRemarks('');
+      setrectificationDate('');
+      setrectificationTime('');
+      setCanEnableRectificationSwitch(false);
+      setShowRectification(false);
+    }
     
+  }, [attendDate, attendTime]);
+
+
+  useEffect(() => {
+    if (false == showRectification) {
+      setRemarks('');
+      setrectificationDate('');
+      setrectificationTime('');
+    }
+    if (false == showAttend) {
+      setAttendDate('');
+      setAttendTime('');
+    }
+  }, [showAttend, showRectification]);
+    
+
   const handleSubmit = async () => {
     if (
       !submitStation ||
@@ -184,6 +192,7 @@ const NewDocketScreen = () => {
     try {
       const values = JSON.stringify([
         submitStation,
+        docketNumber,
         selectedProblem == 'OTHER' ? otherText : selectedProblem,
         serialNo,
         selectedCreationDate,
@@ -211,6 +220,7 @@ const NewDocketScreen = () => {
       );
       setQuery('');
       setSubmitStation('');
+      setDocketNumber('');
       setSelectedProblem('');
       setSerialNo('');
       setSelectedCreationDate('');
@@ -378,6 +388,13 @@ const handleTimeChange = (
                   listContainerStyle={styles.listContainer}
                 />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Docket Number"
+                placeholderTextColor="#333"
+                value={docketNumber}
+                onChangeText={setDocketNumber}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Serial Number"

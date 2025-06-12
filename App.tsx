@@ -1,6 +1,6 @@
 import CorrectiveDetails from './pages/CorrectiveDetails';
 import CorrectiveList from './pages/CorrectiveList';
-import CorrectivePage from './pages/CorrectivePage';
+// import CorrectivePage from './pages/CorrectivePage';
 import HomePage from './pages/HomePage';
 import LocationDetails from './pages/LocationDetails';
 import LocationList from './pages/LocationList';
@@ -39,11 +39,11 @@ export default function App() {
               },
             }}
           />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="Corrective"
             component={CorrectivePage}
             // options={{headerShown: false}}
-          />
+          /> */}
           <Stack.Screen
             name="CorrectiveList"
             component={CorrectiveList}
