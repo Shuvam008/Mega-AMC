@@ -189,18 +189,23 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
       </View>
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
-          Rectification Date & Time :{' '}
+          {headers[4]} : <Text style={styles.cellText}>{locationData[4]}</Text>
+        </Text>
+      </View>
+      <View style={styles.detailItem}>
+        <Text style={styles.headerText}>
+          Reporting Date & Time :{' '}
           <Text style={styles.cellText}>
-            {locationData[4]
-              ? isISODate(locationData[4])
-                ? dayjs(locationData[4]).format('DD/MM/YYYY')
-                : locationData[4]
+            {locationData[5]
+              ? isISODate(locationData[5])
+                ? dayjs(locationData[5]).format('DD/MM/YYYY')
+                : locationData[5]
               : 'N/A'}
             {' - '}
-            {locationData[5]
-              ? isISOTime(locationData[5])
-                ? dayjs(locationData[5]).format('HH:mm')
-                : locationData[5]
+            {locationData[6]
+              ? isISOTime(locationData[6])
+                ? dayjs(locationData[6]).format('HH:mm')
+                : locationData[6]
               : 'N/A'}
           </Text>
         </Text>
@@ -209,7 +214,7 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>Attend Date & Time: </Text>
 
-        {!locationData[6] && !locationData[7] ? (
+        {!locationData[7] && !locationData[8] ? (
           <View style={styles.inputSection}>
             {/* Date Picker Button */}
             <TouchableOpacity
@@ -256,7 +261,7 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
                 !(selectedDate && selectedTime) && styles.disabledButton,
               ]}
               onPress={() =>
-                handleDoubleUpdate(Index, 6, 7, selectedDate, selectedTime)
+                handleDoubleUpdate(Index, 7, 8, selectedDate, selectedTime)
               }
               disabled={!(selectedDate && selectedTime)}>
               <Text style={styles.updateButtonText}>Update</Text>
@@ -265,26 +270,26 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
         ) : (
           // If data exists, show existing date/time
           <Text style={styles.cellText}>
-            {locationData[6]
-              ? isISODate(locationData[6])
-                ? dayjs(locationData[6]).format('DD/MM/YYYY')
-                : locationData[6]
+            {locationData[7]
+              ? isISODate(locationData[7])
+                ? dayjs(locationData[7]).format('DD/MM/YYYY')
+                : locationData[7]
               : 'N/A'}
             {' - '}
-            {locationData[7]
-              ? isISOTime(locationData[7])
-                ? dayjs(locationData[7]).format('HH:mm')
-                : locationData[7]
+            {locationData[8]
+              ? isISOTime(locationData[8])
+                ? dayjs(locationData[8]).format('HH:mm')
+                : locationData[8]
               : 'N/A'}
           </Text>
         )}
       </View>
 
-      {locationData[6] && locationData[7] && (
+      {locationData[7] && locationData[8] && (
         <View style={styles.detailItem}>
           <Text style={styles.headerText}>Rectification Date & Time: </Text>
 
-          {!locationData[8] && !locationData[9] ? (
+          {!locationData[9] && !locationData[10] ? (
             <View style={styles.inputSection}>
               {/* Date Picker Button */}
               <TouchableOpacity
@@ -340,7 +345,7 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
                     styles.disabledButton,
                 ]}
                 onPress={() =>
-                  handleDoubleUpdate(Index, 8, 9, selectedDate, selectedTime)
+                  handleDoubleUpdate(Index, 9, 10, selectedDate, selectedTime)
                 }
                 disabled={!(selectedDate && selectedTime && ProblemNature)}>
                 <Text style={styles.updateButtonText}>Update</Text>
@@ -349,16 +354,16 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
           ) : (
             // If data exists, show existing date/time
             <Text style={styles.cellText}>
-              {locationData[8]
-                ? isISODate(locationData[8])
-                  ? dayjs(locationData[8]).format('DD/MM/YYYY')
-                  : locationData[8]
+              {locationData[9]
+                ? isISODate(locationData[9])
+                  ? dayjs(locationData[9]).format('DD/MM/YYYY')
+                  : locationData[9]
                 : 'N/A'}
               {' - '}
-              {locationData[9]
-                ? isISOTime(locationData[9])
-                  ? dayjs(locationData[9]).format('HH:mm')
-                  : locationData[9]
+              {locationData[10]
+                ? isISOTime(locationData[10])
+                  ? dayjs(locationData[10]).format('HH:mm')
+                  : locationData[10]
                 : 'N/A'}
             </Text>
           )}
