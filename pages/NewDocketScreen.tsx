@@ -19,6 +19,7 @@ import DateTimePicker, {
 import React, {useCallback, useEffect, useState} from 'react';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Autocomplete from 'react-native-autocomplete-input';
 import DeviceInfo from 'react-native-device-info';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -57,9 +58,10 @@ const NewDocketScreen = () => {
   const [showAttendDatePicker, setShowAttendDatePicker] = useState(false);
   const [showAttendTimePicker, setShowAttendTimePicker] = useState(false);
 
-  const [showRectificationDatePicker, setShowRectificationDatePicker] = useState(false);
-  const [showRectificationTimePicker, setShowRectificationTimePicker] = useState(false);
-
+  const [showRectificationDatePicker, setShowRectificationDatePicker] =
+    useState(false);
+  const [showRectificationTimePicker, setShowRectificationTimePicker] =
+    useState(false);
 
   const [serialNo, setSerialNo] = useState('');
   const [serialWarning, setSerialWarning] = useState('');
@@ -83,14 +85,14 @@ const NewDocketScreen = () => {
   const [showAttend, setShowAttend] = useState(false);
   const [showRectification, setShowRectification] = useState(false);
 
-   // Enable switch logic
+  // Enable switch logic
   const [canEnableAttendSwitch, setCanEnableAttendSwitch] = useState(false);
-  const [canEnableRectificationSwitch, setCanEnableRectificationSwitch] = useState(false);
-  
+  const [canEnableRectificationSwitch, setCanEnableRectificationSwitch] =
+    useState(false);
+
   const [loading, setLoading] = useState(false);
   const [loading1, setLoading1] = useState(false);
   const [stations, setStations] = useState(['']);
-
 
   const [submitStation, setSubmitStation] = useState('');
   const [creationDateObj, setCreationDateObj] = useState<Date | null>(null);
@@ -98,30 +100,30 @@ const NewDocketScreen = () => {
   const isDropdownOpen = filteredStations.length > 0 && query.trim() !== '';
 
   useEffect(() => {
-      if (
-        submitStation &&
-        selectedProblem &&
-        serialNo &&
-        selectedCreationDate &&
-        selectedCreationTime &&
-        docketNumber
-      ) {
-        setCanEnableAttendSwitch(true);
-      } else {
-        setAttendDate('');
-        setAttendTime('');
-        setCanEnableAttendSwitch(false);
-        setShowAttend(false);
-      }
-    }, [
-      submitStation,
-      docketNumber,
-      selectedProblem,
-      serialNo,
-      selectedCreationDate,
-      selectedCreationTime,
-      ,
-    ]);
+    if (
+      submitStation &&
+      selectedProblem &&
+      serialNo &&
+      selectedCreationDate &&
+      selectedCreationTime &&
+      docketNumber
+    ) {
+      setCanEnableAttendSwitch(true);
+    } else {
+      setAttendDate('');
+      setAttendTime('');
+      setCanEnableAttendSwitch(false);
+      setShowAttend(false);
+    }
+  }, [
+    submitStation,
+    docketNumber,
+    selectedProblem,
+    serialNo,
+    selectedCreationDate,
+    selectedCreationTime,
+    ,
+  ]);
 
   useEffect(() => {
     if (canEnableAttendSwitch && attendDate && attendTime) {
@@ -133,9 +135,7 @@ const NewDocketScreen = () => {
       setCanEnableRectificationSwitch(false);
       setShowRectification(false);
     }
-    
   }, [attendDate, attendTime]);
-
 
   useEffect(() => {
     if (false == showRectification) {
@@ -148,103 +148,6 @@ const NewDocketScreen = () => {
       setAttendTime('');
     }
   }, [showAttend, showRectification]);
-    
-
-  // const handleSubmit = async () => {
-  //   if (
-  //     !submitStation ||
-  //     !selectedProblem ||
-  //     !serialNo ||
-  //     !selectedCreationDate ||
-  //     !selectedCreationTime
-  //   ) {
-  //     Alert.alert('Error', 'Please fill all fields');
-  //     if (!submitStation) {
-  //        Alert.alert('Error', 'Please fill Station Name');
-  //     }
-  //     return;
-  //   }
-  //   if (showAttend) {
-  //     if (
-  //         !attendDate ||
-  //         !attendTime
-  //       ) {
-  //         Alert.alert('Error', 'Please fill all fields');
-  //         return;
-  //     }
-  //   }
-
-  //   if (showRectification) {
-  //     if (!rectificationDate || !rectificationTime || !remarks) {
-  //       Alert.alert('Error', 'Please fill all fields');
-  //       return;
-  //     }
-  //   }
-
-  //   setLoading(true);
-
-  //   const sheetIdMap: Record<string, string> = {
-  //     '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
-  //     '2': '1qB7Ee0-VOV8pUSYVnhX1qeggnGg_c9ymO2zTqKRa7uQ',
-  //     '3': '1RQQUlGEvNbE94SSudvaQx5PvS3c3ObgCsbTfqyEd69w',
-  //   };
-
-  //   let sheetId = sheetIdMap[sheet];
-
-  //   try {
-  //     const values = JSON.stringify([
-  //       submitStation,
-  //       docketNumber == "" ? 'NO':'NO',
-  //       selectedProblem == 'OTHER' ? otherText : selectedProblem,
-  //       serialNo,
-  //       selectedCreationDate,
-  //       selectedCreationTime,
-  //       attendDate,
-  //       attendTime,
-  //       rectificationDate,
-  //       rectificationTime,
-  //       remarks,
-  //       await DeviceInfo.getDeviceName(),
-  //     ]);
-  //     console.log(values);
-  //     const res = await axios.post(
-  //       'https://script.google.com/macros/s/AKfycbxGdqdvK5jkGPIurOQIoHkI6U5AzVNYXkwjF51fH4Kkcn5WuIgmfetTDNsi9j7fCSu97w/exec',
-  //       values, // this is the JSON body
-  //       {
-  //         params: {
-  //           sheetId: sheetId,
-  //           action: 'appendRow',
-  //         },
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //       },
-  //     );
-  //     setQuery('');
-  //     setSubmitStation('');
-  //     setDocketNumber('NO');
-  //     setSelectedProblem('');
-  //     setSerialNo('');
-  //     setSelectedCreationDate('');
-  //     setSelectedCreationTime('');
-  //     setOtherText('');
-  //   } catch (err) {
-  //     Alert.alert('Error', 'Docket Submit failed');
-  //     console.log(err);
-  //   } finally {
-  //     const netState = await NetInfo.fetch();
-  //       if (!netState.isConnected) {
-  //         Alert.alert(
-  //           'No Internet',
-  //           'Please connect to the internet before submitting.',
-  //         );
-  //       }else{
-  //           Alert.alert('Success', 'Docket submitted successfully');
-  //       }
-      
-  //     setLoading(false); // 👉 hide loader
-  //   }
-  // };
 
   const handleSubmit = async () => {
     // 1. Check Internet FIRST before doing anything
@@ -306,6 +209,8 @@ const NewDocketScreen = () => {
         rectificationDate,
         rectificationTime,
         remarks,
+        '',
+        '',
         await DeviceInfo.getDeviceName(),
       ]);
 
@@ -356,53 +261,52 @@ const NewDocketScreen = () => {
     }
   };
 
+  const handleDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate?: Date,
+    setter?: (val: string) => void,
+    closePicker?: () => void,
+    type?: 'creation' | 'attend' | 'rectify',
+  ) => {
+    if (event.type === 'set' && selectedDate && setter) {
+      const day = selectedDate.getDate().toString().padStart(2, '0');
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = selectedDate.getFullYear();
 
-const handleDateChange = (
-  event: DateTimePickerEvent,
-  selectedDate?: Date,
-  setter?: (val: string) => void,
-  closePicker?: () => void,
-  type?: 'creation' | 'attend' | 'rectify',
-) => {
-  if (event.type === 'set' && selectedDate && setter) {
-    const day = selectedDate.getDate().toString().padStart(2, '0');
-    const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-    const year = selectedDate.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
 
-    const formattedDate = `${day}/${month}/${year}`;
+      if (type === 'creation') {
+        setCreationDateObj(selectedDate);
+        setAttendDate(''); // reset attend if creation changes
+        setAttendDateObj(null);
+        setrectificationDate('');
+      }
 
-    if (type === 'creation') {
-      setCreationDateObj(selectedDate);
-      setAttendDate(''); // reset attend if creation changes
-      setAttendDateObj(null);
-      setrectificationDate('');
+      if (type === 'attend') {
+        setAttendDateObj(selectedDate);
+        setrectificationDate('');
+      }
+
+      setter(formattedDate);
     }
+    if (closePicker) closePicker();
+  };
 
-    if (type === 'attend') {
-      setAttendDateObj(selectedDate);
-      setrectificationDate('');
+  const handleTimeChange = (
+    event: DateTimePickerEvent,
+    selectedTime?: Date,
+    setter?: (val: string) => void,
+    closePicker?: () => void,
+  ) => {
+    if (event.type === 'set' && selectedTime && setter) {
+      const hours = selectedTime.getHours().toString().padStart(2, '0');
+      const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+
+      const formattedTime = `${hours}:${minutes}`;
+      setter(formattedTime);
     }
-
-    setter(formattedDate);
-  }
-  if (closePicker) closePicker();
-};
-
-const handleTimeChange = (
-  event: DateTimePickerEvent,
-  selectedTime?: Date,
-  setter?: (val: string) => void,
-  closePicker?: () => void,
-) => {
-  if (event.type === 'set' && selectedTime && setter) {
-    const hours = selectedTime.getHours().toString().padStart(2, '0');
-    const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-
-    const formattedTime = `${hours}:${minutes}`;
-    setter(formattedTime);
-  }
-  if (closePicker) closePicker();
-};
+    if (closePicker) closePicker();
+  };
 
   const handleSearch = (text: string) => {
     setQuery(text);
@@ -419,6 +323,30 @@ const handleTimeChange = (
     setFilteredStations([]);
   };
 
+  // 1. Create a dynamic key based on the current sheet (1, 2, or 3)
+  const getStorageKey = () => `@stations_sheet_${sheet}`;
+
+  // 2. Load local data when the screen opens or the sheet changes
+  useEffect(() => {
+    const loadLocalData = async () => {
+      try {
+        const key = getStorageKey();
+        const storedStations = await AsyncStorage.getItem(key);
+
+        if (storedStations !== null) {
+          // Local data found! Parse it and set it to state
+          setStations(JSON.parse(storedStations));
+        } else {
+          // First time ever opening the app? Fetch it automatically once.
+          fetchData();
+        }
+      } catch (error) {
+        console.error('Error loading local stations:', error);
+      }
+    };
+
+    loadLocalData();
+  }, [sheet]);
   const fetchData = async () => {
     try {
       setLoading1(true);
@@ -445,18 +373,30 @@ const handleTimeChange = (
 
       // setStations(sheetData.slice(1).map((row: String[]) => row[1]));
       // Change (row: String[]) to (row: string[])
-      setStations(sheetData.slice(1).map((row: string[]) => row[1]));
+      // setStations(sheetData.slice(1).map((row: string[]) => row[1]));
+      const extractedStations = sheetData
+        .slice(1)
+        .map((row: string[]) => row[1]);
+
+      // Update the UI state
+      setStations(extractedStations);
+
+      // SAVE TO LOCAL STORAGE
+      const key = getStorageKey();
+      await AsyncStorage.setItem(key, JSON.stringify(extractedStations));
+
+      // alert('Station list updated successfully!');
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading1(false);
     }
   };
-  useFocusEffect(
-    useCallback(() => {
-      fetchData(); // Refresh data every time the screen is focused
-    }, []),
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchData(); // Refresh data every time the screen is focused
+  //   }, []),
+  // );
   const handleSerialChange = (text: string) => {
     // This regex means: "Allow only letters (a-z, A-Z), numbers (0-9), and spaces."
     const regex = /^[a-zA-Z0-9 ]*$/;
@@ -483,6 +423,8 @@ const handleTimeChange = (
       setOtherWarning('Special characters are not allowed.');
     }
   };
+
+
   return (
     <FlatList
       style={styles.container}
@@ -514,7 +456,12 @@ const handleTimeChange = (
               <View
                 style={[
                   styles.autocompleteContainer,
-                  {zIndex: 1000, elevation: 1000},
+                  {
+                    zIndex: 1000,
+                    elevation: 1000,
+                    display: 'flex',
+                    flexDirection: 'row',
+                  },
                 ]}>
                 <Autocomplete
                   data={filteredStations}
@@ -543,6 +490,18 @@ const handleTimeChange = (
                   inputContainerStyle={styles.inputContainer}
                   listContainerStyle={styles.listContainer}
                 />
+                <TouchableOpacity
+                  style={[
+                    styles.smallSyncButton,
+                    loading1 && styles.syncButtonDisabled,
+                  ]}
+                  onPress={fetchData}
+                  disabled={loading1}>
+                  {/* Using a simple text icon for the square button */}
+                  <Text style={styles.smallSyncButtonText}>
+                    {loading1 ? '...' : '↻'}
+                  </Text>
+                </TouchableOpacity>
               </View>
               <TextInput
                 style={[
@@ -995,5 +954,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0', // A nice, visually logical gray
     color: '#888', // Dims the text slightly so it looks inactive
     borderColor: '#ccc', // Softens the border
+  },
+  smallSyncButton: {
+    backgroundColor: '#0066cc',
+    width: 48, // Fixed width to make it a square
+    height: 48, // Match this to the height of your input box!
+    borderRadius: 8,
+    alignItems: 'center',
+    // justifyContent: 'flex-start',
+    marginLeft: 8, // Adds a little gap between the input and the button
+  },
+  syncButtonDisabled: {
+    backgroundColor: '#A0CFFF',
+  },
+  smallSyncButtonText: {
+    color: '#FFFFFF',
+    fontSize: 35, // Big enough to look like an icon
+    fontWeight: 'bold',
+    
   },
 });

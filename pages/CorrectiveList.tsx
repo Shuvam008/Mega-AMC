@@ -45,44 +45,7 @@ const CorrectiveList = () => {
 
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [currentSort, setCurrentSort] = useState('');
-  // const fetchData = async () => {
-  //   try {
-  //     setLoading(true);
-  //     // await new Promise(resolve => setTimeout(resolve, 500));
-
-  //     const sheetIdMap: Record<string, string> = {
-  //       '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
-  //       '2': '1qB7Ee0-VOV8pUSYVnhX1qeggnGg_c9ymO2zTqKRa7uQ',
-  //       '3': '1RQQUlGEvNbE94SSudvaQx5PvS3c3ObgCsbTfqyEd69w',
-  //     };
-
-  //     let sheetId = sheetIdMap[sheet];
-
-  //     // const response = await axios.get(
-  //     //   `https://script.google.com/macros/s/AKfycbxGdqdvK5jkGPIurOQIoHkI6U5AzVNYXkwjF51fH4Kkcn5WuIgmfetTDNsi9j7fCSu97w/exec?sheet=${sheetId}`,
-  //     // );
-  //     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
-
-  //     const response = await axios.get<string>(csvUrl);
-  //     const csvText = response.data;
-      
-  //     // const sheetData = response.data;
-  //     const sheetData = csvText.split('\n').map(row => row.split(','));
-  //     setHeaders(sheetData[3]);
-  //     setData(sheetData.slice(4));
-  //     setFilteredData(sheetData.slice(4));
-  //   } catch (error) {
-  //     console.error('Error fetching data:', error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     fetchData(); // Refresh data every time the screen is focused
-  //   }, []),
-  // );
+ 
   const fetchData = async () => {
     try {
       // THE FIX: Only trigger the loading spinner if the list is completely empty.
@@ -190,45 +153,7 @@ const CorrectiveList = () => {
 
     setFilteredData(sortedData);
   };
-  //
-//   const renderItem = ({item, index}: {item: string[]; index: number}) => (
-//     <TouchableOpacity
-//       style={styles.card}
-//       onPress={() =>
-//         navigation.navigate('LocationDetails', {
-//           location: item,
-//           headers,
-//           index: Number(item[0]),
-//           sheet,
-//         })
-//       }>
-//       <View style={styles.cardHeader}>
-//         <Text style={styles.cardTitle}>{item[1]}</Text>
-//         {/* <View style={styles.progressBar}>
-//           <View
-//             style={[
-//               styles.progressFill,
-//               {width: `${calculateProgress(item)}%`},
-//             ]}
-//           />
-//         </View> */}
-//       </View>
-//       <View style={styles.metrics}>
-//         <Text>
-//           <Text style={styles.bold}>M1:</Text>{' '}
-//           {item[2] ? dayjs(item[2]).format('DD/MM/YYYY') : 'N/A'}
-//         </Text>
-//         <Text>
-//           <Text style={styles.bold}>M2:</Text>{' '}
-//           {item[3] ? dayjs(item[3]).format('DD/MM/YYYY') : 'N/A'}
-//         </Text>
-//         <Text>
-//           <Text style={styles.bold}>M3:</Text>{' '}
-//           {item[4] ? dayjs(item[4]).format('DD/MM/YYYY') : 'N/A'}
-//         </Text>
-//       </View>
-//     </TouchableOpacity>
-//   );
+
   const isISODate = (value: string) => {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value);
   };
@@ -342,12 +267,7 @@ const CorrectiveList = () => {
   );
 return (
   <View style={styles.container}>
-    {loading ? (
-      <View style={styles.spinnerWrapper}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text>Loading data...</Text>
-      </View>
-    ) : (
+   
       <View style={{flex: 1}}>
         {/* --- TOP BAR: SEARCH, SORT, AND ADD --- */}
         <View style={styles.addDocket}>
@@ -378,20 +298,29 @@ return (
         </View>
 
         {/* --- LIST DATA --- */}
-        {filteredData.length > 0 ? (
-          <FlatList
-            data={filteredData}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => index.toString()}
-            contentContainerStyle={{paddingBottom: 50}}
-          />
+        {loading ? (
+          <View style={styles.spinnerWrapper}>
+            <ActivityIndicator size="large" color="#007bff" />
+            <Text>Loading data...</Text>
+          </View>
         ) : (
-          <View style={{alignItems: 'center', marginTop: 50}}>
-            <Text>No Data found</Text>
+          <View>
+            {filteredData.length > 0 ? (
+              <FlatList
+                data={filteredData}
+                renderItem={renderItem}
+                keyExtractor={(item, index) => index.toString()}
+                contentContainerStyle={{paddingBottom: 50}}
+              />
+            ) : (
+              <View style={{alignItems: 'center', marginTop: 50}}>
+                <Text>No Data found</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
-    )}
+    
 
     {/* --- NEW SORT MODAL --- */}
     <Modal

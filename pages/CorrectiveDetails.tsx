@@ -14,7 +14,12 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import React, {useCallback, useState} from 'react';
-import {RouteProp, useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
+import {
+  RouteProp,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -53,26 +58,34 @@ const CorrectiveDetails = () => {
   const [ProblemNature, setProblemNature] = useState('');
   const [ProblemWarning, setProblemWarning] = useState('');
   // 2. Put it into local state so we can update it later
-  const [currentLocationData, setCurrentLocationData] = useState<string[]>(locationData || [],);
+  const [currentLocationData, setCurrentLocationData] = useState<string[]>(
+    locationData || [],
+  );
 
-const handleDateChange = (event: { type: any; nativeEvent?: { timestamp: number; utcOffset: number; }; }, selected: Date | undefined) => {
-  if (event.type === 'set' && selected) {
-    const formattedDate = selected.toLocaleDateString('en-GB'); // 21/04/2025
-    setSelectedDate(formattedDate);
-  }
-  setShowPicker(false);
-};
+  const handleDateChange = (
+    event: {type: any; nativeEvent?: {timestamp: number; utcOffset: number}},
+    selected: Date | undefined,
+  ) => {
+    if (event.type === 'set' && selected) {
+      const formattedDate = selected.toLocaleDateString('en-GB'); // 21/04/2025
+      setSelectedDate(formattedDate);
+    }
+    setShowPicker(false);
+  };
 
-const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number; utcOffset: number; }; }, selected: Date | undefined) => {
-  if (event.type === 'set' && selected) {
-    const formattedTime = selected.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    setSelectedTime(formattedTime);
-  }
-  setShowTimePicker(false);
-};
+  const handleTimePicked = (
+    event: {type: any; nativeEvent?: {timestamp: number; utcOffset: number}},
+    selected: Date | undefined,
+  ) => {
+    if (event.type === 'set' && selected) {
+      const formattedTime = selected.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      setSelectedTime(formattedTime);
+    }
+    setShowTimePicker(false);
+  };
 
   const updateCell = async (
     rowIndex: number,
@@ -104,6 +117,54 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
       },
     );
   };
+
+  const updateMultipleCells = async (
+    rowIndex: number,
+    startColIndex: number,
+    newValues: string[],
+  ) => {
+    try {
+      const row = rowIndex + 4;
+      const startColLetter = getColumnLetter(startColIndex);
+      const endColLetter = getColumnLetter(startColIndex + newValues.length - 1);
+      const range = `${startColLetter}${row}:${endColLetter}${row}`;
+
+      const sheetIdMap: Record<string, string> = {
+        '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
+        '2': '1qB7Ee0-VOV8pUSYVnhX1qeggnGg_c9ymO2zTqKRa7uQ',
+        '3': '1RQQUlGEvNbE94SSudvaQx5PvS3c3ObgCsbTfqyEd69w',
+      };
+
+      let sheetId = sheetIdMap[sheet];
+
+      const payloadValues = JSON.stringify([newValues]);
+
+      // DIAGNOSTIC LOG: See exactly what range and data we are sending
+      console.log(
+        `Attempting to update Sheet ${sheetId} at Range ${range} with values:`,
+        payloadValues,
+      );
+
+      const response = await axios.post(
+        'https://script.google.com/macros/s/AKfycbw6bwgkmty9wed_gDThv2C7uw9H2YKe7TvOoP6tMcbozmrZhqwUau3OvthvhlOh35mQOw/exec',
+        [],
+        {
+          params: {
+            action: 'updateMultipleCells',
+            sheetId,
+            range,
+            values: payloadValues,
+          },
+        },
+      );
+
+      // DIAGNOSTIC LOG: See what Google says back
+      console.log('Google Sheets Response:', response.data);
+    } catch (error) {
+      // DIAGNOSTIC LOG: Catch the exact error
+      console.error('Update Multiple Cells Error:', error);
+    }
+  };
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -121,28 +182,52 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
       };
     }, [navigation]),
   );
-  // const handleDoubleUpdate = async (
-  //   rowIndex: number,
-  //   dateIndex: number,
-  //   timeIndex: number,
-  //   date:string,
-  //   time:string
-  // ) => {
-  //   setLoading(true);
-  //   if (date && time) {
-  //     await updateCell(rowIndex, dateIndex, date);
-  //     await updateCell(rowIndex, timeIndex, time);
-  //     if (dateIndex>=8) {
-  //       await updateCell(rowIndex, timeIndex + 1, ProblemNature);
-  //     }
-  //     // Clear inputs
-  //    setSelectedDate('');
-  //    setSelectedTime('');
-  //    setLoading(false);
-  //    navigation.replace('CorrectiveList', {sheet});
-  //   }
-  // };
 
+  /**
+   * Calculates the inclusive difference between two dates (DD/MM/YYYY).
+   * Returns a tuple of two integers: [cappedAt7, remainder]
+   */
+
+  const calculateDateSplit = (
+    dateStr1: string,
+    dateStr2: string,
+  ): [number, number] => {
+    // SAFETY GUARD: If a date is missing entirely, return 0 and 0
+    if (!dateStr1 || !dateStr2) {
+      return [0, 0];
+    }
+
+    // 1. Helper function to parse dates and fix the 100-year bug
+    const parseDateString = (dateStr: string) => {
+      let [day, month, year] = dateStr.split('/');
+
+      let yearNum = parseInt(year);
+      // If the year is just '26', convert it to '2026'
+      if (yearNum < 100) {
+        yearNum += 2000;
+      }
+
+      return new Date(yearNum, parseInt(month) - 1, parseInt(day));
+    };
+
+    const dateObj1 = parseDateString(dateStr1);
+    const dateObj2 = parseDateString(dateStr2);
+
+    // 2. Get the absolute difference in milliseconds
+    const diffInMilliseconds = Math.abs(dateObj2.getTime() - dateObj1.getTime());
+
+    // 3. Convert to days
+    const rawDiffInDays = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
+
+    // 4. Add 1 to make it inclusive
+    const totalDays = rawDiffInDays ;
+
+    // 5. Apply the 7-day cap logic
+    const firstValue = Math.min(totalDays, 7);
+    const secondValue = Math.max(0, totalDays - 7);
+
+    return [firstValue, secondValue];
+  };
 
   const handleDoubleUpdate = async (
     rowIndex: number,
@@ -155,10 +240,22 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
     try {
       if (date && time) {
         // 1. Update Google Sheets
-        await updateCell(rowIndex, dateIndex, date);
-        await updateCell(rowIndex, timeIndex, time);
+        // await updateCell(rowIndex, dateIndex, date);
+        // await updateCell(rowIndex, timeIndex, time);
         if (dateIndex >= 8) {
-          await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+          // await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+
+          const [val1, val2] = calculateDateSplit(date, currentLocationData[5]);
+          await updateMultipleCells(rowIndex, dateIndex, [
+            date,
+            time,
+            ProblemNature,
+            val1.toString(),
+            val2.toString(),
+          ]);
+          console.log('Value 1 : ', val1, 'Value2 : ', val2);
+        }else{
+          await updateMultipleCells(rowIndex, dateIndex, [date, time]);
         }
 
         // 2. Update Local State immediately to reflect changes on UI
@@ -184,7 +281,6 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
     }
   };
 
-  
   if (!currentLocationData || currentLocationData.length === 0) {
     return (
       <View style={styles.container}>
