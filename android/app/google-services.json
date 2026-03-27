@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "406083230775",
+    "project_id": "megaamc-ef11e",
+    "storage_bucket": "megaamc-ef11e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:406083230775:android:e99f0c3ea1969fc59ef3b2",
+        "android_client_info": {
+          "package_name": "com.megaamc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN-Ets8hcvuh14uD9kPU3lLX88oatFb3g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

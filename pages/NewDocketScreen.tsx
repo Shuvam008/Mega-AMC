@@ -28,10 +28,10 @@ import { RootStackParamList } from './types';
 import axios from 'axios';
 
 const problems = [
-    'PRINTER PROBLEM',
+    'PRINTING PROBLEM',
     'OUT OF ORDER',
     'TICKET CUTTING PROBLEM',
-    'DISPLAY PROBLEM',
+    'NO DISPLAY',
     'CARD READER PROBLEM',
     'POWER PROBLEM',
     'LOGIN PROBLEM',
@@ -62,11 +62,13 @@ const NewDocketScreen = () => {
 
 
   const [serialNo, setSerialNo] = useState('');
+  const [serialWarning, setSerialWarning] = useState('');
   const [selectedCreationDate, setSelectedCreationDate] = useState<string>('');
   const [selectedCreationTime, setSelectedCreationTime] = useState<string>('');
   const [selectedProblem, setSelectedProblem] = useState('');
   const [otherText, setOtherText] = useState('');
-  const [docketNumber, setDocketNumber] = useState('');
+  const [otherWarning, setOtherWarning] = useState('');
+  const [docketNumber, setDocketNumber] = useState('NO');
   const [query, setQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState(['']);
 
@@ -93,7 +95,7 @@ const NewDocketScreen = () => {
   const [submitStation, setSubmitStation] = useState('');
   const [creationDateObj, setCreationDateObj] = useState<Date | null>(null);
   const [attendDateObj, setAttendDateObj] = useState<Date | null>(null);
-
+  const isDropdownOpen = filteredStations.length > 0 && query.trim() !== '';
 
   useEffect(() => {
       if (
@@ -148,7 +150,114 @@ const NewDocketScreen = () => {
   }, [showAttend, showRectification]);
     
 
+  // const handleSubmit = async () => {
+  //   if (
+  //     !submitStation ||
+  //     !selectedProblem ||
+  //     !serialNo ||
+  //     !selectedCreationDate ||
+  //     !selectedCreationTime
+  //   ) {
+  //     Alert.alert('Error', 'Please fill all fields');
+  //     if (!submitStation) {
+  //        Alert.alert('Error', 'Please fill Station Name');
+  //     }
+  //     return;
+  //   }
+  //   if (showAttend) {
+  //     if (
+  //         !attendDate ||
+  //         !attendTime
+  //       ) {
+  //         Alert.alert('Error', 'Please fill all fields');
+  //         return;
+  //     }
+  //   }
+
+  //   if (showRectification) {
+  //     if (!rectificationDate || !rectificationTime || !remarks) {
+  //       Alert.alert('Error', 'Please fill all fields');
+  //       return;
+  //     }
+  //   }
+
+  //   setLoading(true);
+
+  //   const sheetIdMap: Record<string, string> = {
+  //     '1': '1hNpWRqVNx7QuyBp20gj9L7f_rgYnQF8XM7euevBxr7Q',
+  //     '2': '1qB7Ee0-VOV8pUSYVnhX1qeggnGg_c9ymO2zTqKRa7uQ',
+  //     '3': '1RQQUlGEvNbE94SSudvaQx5PvS3c3ObgCsbTfqyEd69w',
+  //   };
+
+  //   let sheetId = sheetIdMap[sheet];
+
+  //   try {
+  //     const values = JSON.stringify([
+  //       submitStation,
+  //       docketNumber == "" ? 'NO':'NO',
+  //       selectedProblem == 'OTHER' ? otherText : selectedProblem,
+  //       serialNo,
+  //       selectedCreationDate,
+  //       selectedCreationTime,
+  //       attendDate,
+  //       attendTime,
+  //       rectificationDate,
+  //       rectificationTime,
+  //       remarks,
+  //       await DeviceInfo.getDeviceName(),
+  //     ]);
+  //     console.log(values);
+  //     const res = await axios.post(
+  //       'https://script.google.com/macros/s/AKfycbxGdqdvK5jkGPIurOQIoHkI6U5AzVNYXkwjF51fH4Kkcn5WuIgmfetTDNsi9j7fCSu97w/exec',
+  //       values, // this is the JSON body
+  //       {
+  //         params: {
+  //           sheetId: sheetId,
+  //           action: 'appendRow',
+  //         },
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //       },
+  //     );
+  //     setQuery('');
+  //     setSubmitStation('');
+  //     setDocketNumber('NO');
+  //     setSelectedProblem('');
+  //     setSerialNo('');
+  //     setSelectedCreationDate('');
+  //     setSelectedCreationTime('');
+  //     setOtherText('');
+  //   } catch (err) {
+  //     Alert.alert('Error', 'Docket Submit failed');
+  //     console.log(err);
+  //   } finally {
+  //     const netState = await NetInfo.fetch();
+  //       if (!netState.isConnected) {
+  //         Alert.alert(
+  //           'No Internet',
+  //           'Please connect to the internet before submitting.',
+  //         );
+  //       }else{
+  //           Alert.alert('Success', 'Docket submitted successfully');
+  //       }
+      
+  //     setLoading(false); // 👉 hide loader
+  //   }
+  // };
+
   const handleSubmit = async () => {
+    // 1. Check Internet FIRST before doing anything
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      Alert.alert(
+        'No Internet',
+        'Please connect to the internet before submitting.',
+      );
+      return;
+    }
+
+    // 2. Validation
     if (
       !submitStation ||
       !selectedProblem ||
@@ -157,26 +266,21 @@ const NewDocketScreen = () => {
       !selectedCreationTime
     ) {
       Alert.alert('Error', 'Please fill all fields');
-      if (!submitStation) {
-         Alert.alert('Error', 'Please fill Station Name');
-      }
+      if (!submitStation) Alert.alert('Error', 'Please fill Station Name');
       return;
     }
-    if (showAttend) {
-      if (
-          !attendDate ||
-          !attendTime
-        ) {
-          Alert.alert('Error', 'Please fill all fields');
-          return;
-      }
+
+    if (showAttend && (!attendDate || !attendTime)) {
+      Alert.alert('Error', 'Please fill Attend Date and Time');
+      return;
     }
 
-    if (showRectification) {
-      if (!rectificationDate || !rectificationTime || !remarks) {
-        Alert.alert('Error', 'Please fill all fields');
-        return;
-      }
+    if (
+      showRectification &&
+      (!rectificationDate || !rectificationTime || !remarks)
+    ) {
+      Alert.alert('Error', 'Please fill Rectification fields completely');
+      return;
     }
 
     setLoading(true);
@@ -192,7 +296,7 @@ const NewDocketScreen = () => {
     try {
       const values = JSON.stringify([
         submitStation,
-        docketNumber,
+        docketNumber == '' ? 'NO' : 'NO',
         selectedProblem == 'OTHER' ? otherText : selectedProblem,
         serialNo,
         selectedCreationDate,
@@ -204,23 +308,41 @@ const NewDocketScreen = () => {
         remarks,
         await DeviceInfo.getDeviceName(),
       ]);
-      console.log(values);
+
       const res = await axios.post(
-        'https://script.google.com/macros/s/AKfycbxGdqdvK5jkGPIurOQIoHkI6U5AzVNYXkwjF51fH4Kkcn5WuIgmfetTDNsi9j7fCSu97w/exec',
-        values, // this is the JSON body
+        'https://script.google.com/macros/s/AKfycbw6bwgkmty9wed_gDThv2C7uw9H2YKe7TvOoP6tMcbozmrZhqwUau3OvthvhlOh35mQOw/exec',
+        values,
         {
-          params: {
-            sheetId: sheetId,
-            action: 'appendRow',
-          },
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          params: {sheetId: sheetId, action: 'appendRow'},
+          headers: {'Content-Type': 'application/json'},
         },
       );
+
+      // 3. Catch Duplicate Responses from Apps Script
+      if (res.data === 'Duplicate') {
+        Alert.alert(
+          'Duplicate Entry',
+          'This exact docket was already submitted recently.',
+        );
+        // Clear form
+        setQuery('');
+        setSubmitStation('');
+        setDocketNumber('NO');
+        setSelectedProblem('');
+        setSerialNo('');
+        setSelectedCreationDate('');
+        setSelectedCreationTime('');
+        setOtherText('');
+        return; // Stop here, don't clear the form
+      }
+
+      // 4. If we made it here, it was truly successful!
+      Alert.alert('Success', 'Docket submitted successfully');
+
+      // Clear form
       setQuery('');
       setSubmitStation('');
-      setDocketNumber('');
+      setDocketNumber('NO');
       setSelectedProblem('');
       setSerialNo('');
       setSelectedCreationDate('');
@@ -230,19 +352,10 @@ const NewDocketScreen = () => {
       Alert.alert('Error', 'Docket Submit failed');
       console.log(err);
     } finally {
-      const netState = await NetInfo.fetch();
-        if (!netState.isConnected) {
-          Alert.alert(
-            'No Internet',
-            'Please connect to the internet before submitting.',
-          );
-        }else{
-            Alert.alert('Success', 'Docket submitted successfully');
-        }
-      
-      setLoading(false); // 👉 hide loader
+      setLoading(false); // Hide loader regardless of success or failure
     }
   };
+
 
 const handleDateChange = (
   event: DateTimePickerEvent,
@@ -313,19 +426,26 @@ const handleTimeChange = (
 
       const sheetIdMap: Record<string, string> = {
         '1': '1YjI3yILyl_4oPcSY1cUQwobdm4TTgrEf84qTT7GXKHQ',
-        '2': '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA ',
+        '2': '153ll-RPxGW4hKbwKrQR3kFkB8EujHOrljYHfvwezaQA',
         '3': '1_83jCyTNUCsOBENKFIC367y5l-CPG40vKZraX1hu7gc',
       };
 
       let sheetId = sheetIdMap[sheet];
 
-      const response = await axios.get(
-        `https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec?sheet=${sheetId}`,
-      );
-      const sheetData = response.data;
+      // const response = await axios.get(
+      //   `https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec?sheet=${sheetId}`,
+      // );
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+
+      const response = await axios.get<string>(csvUrl);
+      const csvText = response.data;
+      // const sheetData = response.data;
+      const sheetData = csvText.split('\n').map(row => row.split(','));
       console.log(sheetData);
 
-      setStations(sheetData.slice(1).map((row: String[]) => row[1]));
+      // setStations(sheetData.slice(1).map((row: String[]) => row[1]));
+      // Change (row: String[]) to (row: string[])
+      setStations(sheetData.slice(1).map((row: string[]) => row[1]));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -337,6 +457,32 @@ const handleTimeChange = (
       fetchData(); // Refresh data every time the screen is focused
     }, []),
   );
+  const handleSerialChange = (text: string) => {
+    // This regex means: "Allow only letters (a-z, A-Z), numbers (0-9), and spaces."
+    const regex = /^[a-zA-Z0-9 ]*$/;
+
+    if (regex.test(text)) {
+      // Input is clean! Save it and clear any existing warnings.
+      setSerialNo(text.toUpperCase());
+      setSerialWarning('');
+    } else {
+      // Input contains a special character! Reject it and show warning.
+      setSerialWarning('Special characters are not allowed.');
+    }
+  };
+  const handleOtherTextChange = (text: string) => {
+    // Allows only letters, numbers, and spaces
+    const regex = /^[a-zA-Z0-9 ]*$/;
+
+    if (regex.test(text)) {
+      // Input is clean! Save it and clear the warning.
+      setOtherText(text);
+      setOtherWarning('');
+    } else {
+      // Special character detected! Reject and warn.
+      setOtherWarning('Special characters are not allowed.');
+    }
+  };
   return (
     <FlatList
       style={styles.container}
@@ -365,12 +511,22 @@ const handleTimeChange = (
               ) : (
                 <Text style={styles.locationTitle}>METRO DIVISION</Text>
               )}
-              <View style={styles.autocompleteContainer}>
+              <View
+                style={[
+                  styles.autocompleteContainer,
+                  {zIndex: 1000, elevation: 1000},
+                ]}>
                 <Autocomplete
                   data={filteredStations}
                   defaultValue={query}
                   onChangeText={handleSearch}
-                  placeholder="Station (e.g. HOWRAH)"
+                  placeholder={`Station (e.g. ${
+                    sheet === '1'
+                      ? 'HOWRAH'
+                      : sheet === '2'
+                      ? 'SEALDAH'
+                      : 'Esplanade'
+                  })`}
                   placeholderTextColor="#333"
                   hideResults={
                     filteredStations.length === 0 || query.trim() === ''
@@ -389,21 +545,22 @@ const handleTimeChange = (
                 />
               </View>
               <TextInput
-                style={styles.input}
-                placeholder="Docket Number"
-                placeholderTextColor="#333"
-                value={docketNumber}
-                onChangeText={setDocketNumber}
-              />
-              <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  serialWarning ? {borderColor: 'red', color: 'black'} : null,
+                ]} // Optional: Turn border red on error
                 placeholder="Serial Number"
                 placeholderTextColor="#333"
                 value={serialNo}
-                onChangeText={setSerialNo}
+                onChangeText={handleSerialChange}
               />
+              {/* Show the warning text only if there is a warning */}
+              {serialWarning ? (
+                <Text style={styles.warningText}>{serialWarning}</Text>
+              ) : null}
               <View style={styles.pickerWrapper}>
                 <Picker
+                  enabled={!isDropdownOpen}
                   selectedValue={selectedProblem}
                   onValueChange={itemValue => setSelectedProblem(itemValue)}
                   style={styles.picker}>
@@ -423,21 +580,39 @@ const handleTimeChange = (
                   {/* <Picker.Item label="Other" value="OTHER" color="#333" /> */}
                 </Picker>
               </View>
+              <Text
+                style={{
+                  color: !isDropdownOpen ? 'white' : 'red',
+                  marginBottom: 5,
+                }}>
+                please select the station first
+              </Text>
               {selectedProblem === 'OTHER' && (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Describe your issue"
-                  placeholderTextColor="#333"
-                  value={otherText}
-                  onChangeText={setOtherText}
-                />
+                <View>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      otherWarning
+                        ? {borderColor: 'red', color: 'black'}
+                        : null,
+                    ]}
+                    placeholder="Describe your issue"
+                    placeholderTextColor="#333"
+                    value={otherText}
+                    onChangeText={handleOtherTextChange}
+                  />
+                  {/* Show warning if special characters are typed */}
+                  {otherWarning ? (
+                    <Text style={styles.warningText}>{otherWarning}</Text>
+                  ) : null}
+                </View>
               )}
               {/* <TextInput
-        style={styles.input}
-        placeholder="Date (e.g. 30.01.2025)"
-        value={date}
-        onChangeText={setDate}
-      /> */}
+                style={styles.input}
+                placeholder="Date (e.g. 30.01.2025)"
+                value={date}
+                onChangeText={setDate}
+              /> */}
 
               {/* Docket Creation Container */}
               <View>
@@ -782,7 +957,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderColor: '#ccc',
     backgroundColor: '#fff',
-    marginBottom: 10,
+    marginBottom: 2,
     overflow: 'hidden', // Important for borderRadius to apply
   },
 
@@ -808,5 +983,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 10,
     fontSize: 16,
+  },
+  warningText: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: -15, // Pulls it up closer to the input box
+    marginBottom: 15,
+    marginLeft: 5,
+  },
+  disabledInput: {
+    backgroundColor: '#e0e0e0', // A nice, visually logical gray
+    color: '#888', // Dims the text slightly so it looks inactive
+    borderColor: '#ccc', // Softens the border
   },
 });

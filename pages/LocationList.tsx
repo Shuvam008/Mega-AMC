@@ -26,11 +26,8 @@ const LocationList = () => {
   const navigation = useNavigation<LocationListScreenProp>();
   // const sheet = route.params?.sheet || 1;
   const sheet = route.params?.sheet?.toString() || '3';
-  // console.log('Sheet id is >>>', sheet);
-//   const [data, setData] = useState([]);
-  const [headers, setHeaders] = useState([]);
+  const [headers, setHeaders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-//   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [data, setData] = useState<string[][]>([]);
@@ -50,10 +47,20 @@ const LocationList = () => {
 
       let sheetId = sheetIdMap[sheet];
       
-      const response = await axios.get(
-        `https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec?sheet=${sheetId}`,
-      );
-      const sheetData = response.data;
+      // const response = await axios.get(
+      //   `https://script.google.com/macros/s/AKfycbz8XVVJBi6ZBHPe_9-muGM9pJkJIAOCGaFjjwsrs5n38WymPEtGR4JQoh8edWaDYf93cA/exec?sheet=${sheetId}`,
+      // );
+      // const sheetData = response.data;
+      ///
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+
+      const response = await axios.get<string>(csvUrl);
+      const csvText = response.data;
+
+      const sheetData = csvText
+        .split('\n')
+        .map((row: string) => row.split(','));
+      ///
       setHeaders(sheetData[0]);
       setData(sheetData.slice(1));
       setFilteredData(sheetData.slice(1));
@@ -105,7 +112,9 @@ const handleSearchChange = (text: string) => {
   setFilteredData(filtered);
 };
 
-
+const isISODate = (value: string) => {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value);
+};
 
 
   const renderItem = ({item, index}: {item: string[]; index: number}) => (
@@ -120,7 +129,9 @@ const handleSearchChange = (text: string) => {
         })
       }>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item[1]}</Text>
+        <Text style={styles.cardTitle}>
+          {item[1].length > 20 ? item[1].substring(0, 17) + '...' : item[1]}
+        </Text>
         <View style={styles.progressBar}>
           <View
             style={[
@@ -133,15 +144,27 @@ const handleSearchChange = (text: string) => {
       <View style={styles.metrics}>
         <Text>
           <Text style={styles.bold}>M1:</Text>{' '}
-          {item[2] ? dayjs(item[2]).format('DD/MM/YYYY') : 'N/A'}
+          {item[2]
+            ? isISODate(item[2])
+              ? dayjs(item[2]).format('DD/MM/YYYY')
+              : item[2]
+            : 'N/A'}
         </Text>
         <Text>
           <Text style={styles.bold}>M2:</Text>{' '}
-          {item[3] ? dayjs(item[3]).format('DD/MM/YYYY') : 'N/A'}
+          {item[3]
+            ? isISODate(item[3])
+              ? dayjs(item[3]).format('DD/MM/YYYY')
+              : item[3]
+            : 'N/A'}
         </Text>
         <Text>
           <Text style={styles.bold}>M3:</Text>{' '}
-          {item[4] ? dayjs(item[4]).format('DD/MM/YYYY') : 'N/A'}
+          {item[4]
+            ? isISODate(item[4])
+              ? dayjs(item[4]).format('DD/MM/YYYY')
+              : item[4]
+            : 'N/A'}
         </Text>
       </View>
     </TouchableOpacity>

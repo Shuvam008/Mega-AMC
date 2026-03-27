@@ -1,7 +1,6 @@
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
 import {
+  ActivityIndicator,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import React, {useState} from 'react';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 
@@ -40,6 +42,12 @@ const LocationDetails = () => {
   const headers = route.params?.headers;
   const Index = route.params?.index;
   const sheet = route.params?.sheet?.toString() || '1';
+
+  // 2. Set up LOCAL STATE to drive the UI and Loading spinner
+  const [currentLocationData, setCurrentLocationData] = useState<string[]>(
+    locationData || [],
+  );
+  const [loading, setLoading] = useState(false);
 
   const [selectedDates, setSelectedDates] = useState<Record<number, string>>(
     {},
@@ -92,36 +100,130 @@ const LocationDetails = () => {
     );
   };
 
-  const handleUpdate = (rowIndex: number, colIndex: number) => {
+  // const handleUpdate = (rowIndex: number, colIndex: number) => {
+  //   const selectedDate = selectedDates[colIndex];
+  //   if (selectedDate) {
+  //     updateCell(rowIndex, colIndex, selectedDate);
+  //     setSelectedDates(prev => ({...prev, [colIndex]: ''}));
+  //     navigation.replace('LocationList', {sheet});
+  //   }
+  // };
+  // 3. Make handleUpdate async and update local state instead of navigating away
+  const handleUpdate = async (rowIndex: number, colIndex: number) => {
     const selectedDate = selectedDates[colIndex];
+
     if (selectedDate) {
-      updateCell(rowIndex, colIndex, selectedDate);
-      setSelectedDates(prev => ({...prev, [colIndex]: ''}));
-      navigation.replace('LocationList', {sheet});
+      setLoading(true);
+      try {
+        // 1. Update Google Sheet
+        await updateCell(rowIndex, colIndex, selectedDate);
+
+        // 2. Update Local State immediately to reflect changes on UI
+        const updatedData = [...currentLocationData];
+        updatedData[colIndex] = selectedDate;
+        setCurrentLocationData(updatedData);
+
+        // 3. Clear the selected date input for this cell
+        setSelectedDates(prev => ({...prev, [colIndex]: ''}));
+
+        // REMOVED: navigation.replace('LocationList', {sheet});
+      } catch (error) {
+        console.error('Failed to update cell:', error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  if (!locationData) {
+  // if (!locationData) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text>Location not found</Text>
+  //     </View>
+  //   );
+  // }
+  if (!currentLocationData || currentLocationData.length === 0) {
     return (
       <View style={styles.container}>
         <Text>Location not found</Text>
       </View>
     );
   }
-
   const isISODate = (value: string) => {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value);
   };
 
   return (
+    // <ScrollView contentContainerStyle={styles.container}>
+    //   <Text style={styles.locationTitle}>{locationData[1]}</Text>
+    //   {locationData.map((cell, cellIndex) =>
+    //     cellIndex !== 0 ? (
+    //       <View style={styles.detailItem} key={cellIndex}>
+    //         <Text style={styles.headerText}>
+    //           {headers[cellIndex]}:{' '}
+    //           {/* <Text style={styles.cellText}>{cell || 'N/A'}</Text> */}
+    //           <Text style={styles.cellText}>
+    //             {cell
+    //               ? isISODate(cell)
+    //                 ? dayjs(cell).format('DD/MM/YYYY')
+    //                 : cell
+    //               : 'N/A'}
+    //           </Text>
+    //         </Text>
+    //         {cellIndex >= 2 && !cell && (
+    //           <View style={styles.inputSection}>
+    //             <TouchableOpacity
+    //               style={styles.dateButton}
+    //               onPress={() =>
+    //                 setShowPicker(prev => ({...prev, [cellIndex]: true}))
+    //               }>
+    //               <Text style={styles.dateButtonText}>
+    //                 {selectedDates[cellIndex] || 'Select a date'}
+    //               </Text>
+    //             </TouchableOpacity>
+    //             {showPicker[cellIndex] && (
+    //               <DateTimePicker
+    //                 value={new Date()}
+    //                 mode="date"
+    //                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+    //                 onChange={(event, date) =>
+    //                   handleDateChange(event, date, cellIndex)
+    //                 }
+    //               />
+    //             )}
+    //             <TouchableOpacity
+    //               style={[
+    //                 styles.updateButton,
+    //                 !selectedDates[cellIndex] && styles.disabledButton,
+    //               ]}
+    //               onPress={() => handleUpdate(Index, cellIndex)}
+    //               disabled={!selectedDates[cellIndex]}>
+    //               <Text style={styles.updateButtonText}>Update</Text>
+    //             </TouchableOpacity>
+    //           </View>
+    //         )}
+    //       </View>
+    //     ) : null,
+    //   )}
+    // </ScrollView>
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.locationTitle}>{locationData[1]}</Text>
-      {locationData.map((cell, cellIndex) =>
+      {/* 4. Add the Loading Modal */}
+      <Modal transparent={true} visible={loading}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loaderBox}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.loadingText}>Submitting...</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Text style={styles.locationTitle}>{currentLocationData[1]}</Text>
+
+      {currentLocationData.map((cell, cellIndex) =>
         cellIndex !== 0 ? (
           <View style={styles.detailItem} key={cellIndex}>
             <Text style={styles.headerText}>
               {headers[cellIndex]}:{' '}
-              {/* <Text style={styles.cellText}>{cell || 'N/A'}</Text> */}
               <Text style={styles.cellText}>
                 {cell
                   ? isISODate(cell)
@@ -130,6 +232,8 @@ const LocationDetails = () => {
                   : 'N/A'}
               </Text>
             </Text>
+
+            {/* If cellIndex >= 2 and there is NO data in this cell, show the inputs */}
             {cellIndex >= 2 && !cell && (
               <View style={styles.inputSection}>
                 <TouchableOpacity
@@ -138,9 +242,12 @@ const LocationDetails = () => {
                     setShowPicker(prev => ({...prev, [cellIndex]: true}))
                   }>
                   <Text style={styles.dateButtonText}>
-                    {selectedDates[cellIndex] || 'Select a date'}
+                    {selectedDates[cellIndex]
+                      ? dayjs(selectedDates[cellIndex]).format('DD/MM/YYYY')
+                      : 'Select a date'}
                   </Text>
                 </TouchableOpacity>
+
                 {showPicker[cellIndex] && (
                   <DateTimePicker
                     value={new Date()}
@@ -151,6 +258,7 @@ const LocationDetails = () => {
                     }
                   />
                 )}
+
                 <TouchableOpacity
                   style={[
                     styles.updateButton,
@@ -197,7 +305,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   cellText: {
-    fontWeight: 'normal',
+    fontWeight: 'bold',
+    color: '#0051ff',
   },
   inputSection: {
     marginTop: 10,
@@ -212,7 +321,7 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#0051ff',
   },
   updateButton: {
     backgroundColor: '#27ae60',
@@ -225,6 +334,24 @@ const styles = StyleSheet.create({
   },
   updateButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  // Added Loading Styles
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderBox: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginLeft: 10,
     fontSize: 16,
   },
 });

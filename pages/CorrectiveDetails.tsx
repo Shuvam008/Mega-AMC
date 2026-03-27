@@ -51,7 +51,9 @@ const CorrectiveDetails = () => {
   const [showPicker, setShowPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [ProblemNature, setProblemNature] = useState('');
-
+  const [ProblemWarning, setProblemWarning] = useState('');
+  // 2. Put it into local state so we can update it later
+  const [currentLocationData, setCurrentLocationData] = useState<string[]>(locationData || [],);
 
 const handleDateChange = (event: { type: any; nativeEvent?: { timestamp: number; utcOffset: number; }; }, selected: Date | undefined) => {
   if (event.type === 'set' && selected) {
@@ -119,29 +121,71 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
       };
     }, [navigation]),
   );
+  // const handleDoubleUpdate = async (
+  //   rowIndex: number,
+  //   dateIndex: number,
+  //   timeIndex: number,
+  //   date:string,
+  //   time:string
+  // ) => {
+  //   setLoading(true);
+  //   if (date && time) {
+  //     await updateCell(rowIndex, dateIndex, date);
+  //     await updateCell(rowIndex, timeIndex, time);
+  //     if (dateIndex>=8) {
+  //       await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+  //     }
+  //     // Clear inputs
+  //    setSelectedDate('');
+  //    setSelectedTime('');
+  //    setLoading(false);
+  //    navigation.replace('CorrectiveList', {sheet});
+  //   }
+  // };
+
+
   const handleDoubleUpdate = async (
     rowIndex: number,
     dateIndex: number,
     timeIndex: number,
-    date:string,
-    time:string
+    date: string,
+    time: string,
   ) => {
     setLoading(true);
-    if (date && time) {
-      await updateCell(rowIndex, dateIndex, date);
-      await updateCell(rowIndex, timeIndex, time);
-      if (dateIndex>=8) {
-        await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+    try {
+      if (date && time) {
+        // 1. Update Google Sheets
+        await updateCell(rowIndex, dateIndex, date);
+        await updateCell(rowIndex, timeIndex, time);
+        if (dateIndex >= 8) {
+          await updateCell(rowIndex, timeIndex + 1, ProblemNature);
+        }
+
+        // 2. Update Local State immediately to reflect changes on UI
+        const updatedData = [...currentLocationData];
+        updatedData[dateIndex] = date;
+        updatedData[timeIndex] = time;
+        if (dateIndex >= 8) {
+          updatedData[timeIndex + 1] = ProblemNature;
+        }
+        setCurrentLocationData(updatedData);
+
+        // 3. Clear inputs
+        setSelectedDate('');
+        setSelectedTime('');
+
+        // REMOVED: navigation.replace('CorrectiveList', {sheet});
       }
-      // Clear inputs
-     setSelectedDate('');
-     setSelectedTime('');
-     setLoading(false);
-     navigation.replace('CorrectiveList', {sheet});
+    } catch (error) {
+      console.error('Failed to update:', error);
+      // Optional: Add an alert here so the user knows if it failed
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!locationData) {
+  
+  if (!currentLocationData || currentLocationData.length === 0) {
     return (
       <View style={styles.container}>
         <Text>Location not found</Text>
@@ -159,6 +203,19 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
     );
   };
 
+  const handleProblemNatureTextChange = (text: string) => {
+    // Allows only letters, numbers, and spaces
+    const regex = /^[a-zA-Z0-9 ]*$/;
+
+    if (regex.test(text)) {
+      // Input is clean! Save it and clear the warning.
+      setProblemNature(text);
+      setProblemWarning('');
+    } else {
+      // Special character detected! Reject and warn.
+      setProblemWarning('Special characters are not allowed.');
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Modal transparent={true} visible={loading}>
@@ -170,51 +227,74 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
         </View>
       </Modal>
 
-      <Text style={styles.locationTitle}>{locationData[1]}</Text>
+      <Text style={styles.locationTitle}>{currentLocationData[1]}</Text>
 
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
-          {headers[1]} : <Text style={styles.cellText}>{locationData[1]}</Text>
+          {headers[1]} :{' '}
+          <Text style={styles.cellText}>{currentLocationData[1]}</Text>
         </Text>
       </View>
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
-          {headers[2]} : <Text style={styles.cellText}>{locationData[2]}</Text>
+          {headers[2]} :{' '}
+          <Text
+            style={[
+              styles.cellText,
+              {fontSize: 20, fontWeight: 600, color: '#f36a30'},
+            ]}>
+            {currentLocationData[0]}
+          </Text>
         </Text>
       </View>
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
-          {headers[3]} : <Text style={styles.cellText}>{locationData[3]}</Text>
+          {headers[3]} :{' '}
+          <Text style={styles.cellText}>{currentLocationData[3]}</Text>
         </Text>
       </View>
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
-          {headers[4]} : <Text style={styles.cellText}>{locationData[4]}</Text>
+          {headers[4]} :{' '}
+          <Text style={styles.cellText}>{currentLocationData[4]}</Text>
         </Text>
       </View>
       <View style={styles.detailItem}>
         <Text style={styles.headerText}>
           Reporting Date & Time :{' '}
           <Text style={styles.cellText}>
-            {locationData[5]
-              ? isISODate(locationData[5])
-                ? dayjs(locationData[5]).format('DD/MM/YYYY')
-                : locationData[5]
+            {currentLocationData[5]
+              ? isISODate(currentLocationData[5])
+                ? dayjs(currentLocationData[5]).format('DD/MM/YYYY')
+                : currentLocationData[5]
               : 'N/A'}
             {' - '}
-            {locationData[6]
-              ? isISOTime(locationData[6])
-                ? dayjs(locationData[6]).format('HH:mm')
-                : locationData[6]
+            {currentLocationData[6]
+              ? isISOTime(currentLocationData[6])
+                ? dayjs(currentLocationData[6]).format('HH:mm')
+                : currentLocationData[6]
               : 'N/A'}
           </Text>
         </Text>
       </View>
 
-      <View style={styles.detailItem}>
+      <View
+        style={[
+          styles.detailItem,
+          {
+            // Default to flex so we can use flexDirection
+            display: 'flex',
+
+            // Your conditional logic goes right here!
+            flexDirection:
+              !currentLocationData[7] && !currentLocationData[8]
+                ? 'column'
+                : 'row',
+          },
+        ]}>
         <Text style={styles.headerText}>Attend Date & Time: </Text>
 
-        {!locationData[7] && !locationData[8] ? (
+        {!currentLocationData[7] && !currentLocationData[8] ? (
           <View style={styles.inputSection}>
             {/* Date Picker Button */}
             <TouchableOpacity
@@ -270,26 +350,39 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
         ) : (
           // If data exists, show existing date/time
           <Text style={styles.cellText}>
-            {locationData[7]
-              ? isISODate(locationData[7])
-                ? dayjs(locationData[7]).format('DD/MM/YYYY')
-                : locationData[7]
+            {currentLocationData[7]
+              ? isISODate(currentLocationData[7])
+                ? dayjs(currentLocationData[7]).format('DD/MM/YYYY')
+                : currentLocationData[7]
               : 'N/A'}
             {' - '}
-            {locationData[8]
-              ? isISOTime(locationData[8])
-                ? dayjs(locationData[8]).format('HH:mm')
-                : locationData[8]
+            {currentLocationData[8]
+              ? isISOTime(currentLocationData[8])
+                ? dayjs(currentLocationData[8]).format('HH:mm')
+                : currentLocationData[8]
               : 'N/A'}
           </Text>
         )}
       </View>
 
-      {locationData[7] && locationData[8] && (
-        <View style={styles.detailItem}>
+      {currentLocationData[7] && currentLocationData[8] && (
+        <View
+          style={[
+            styles.detailItem,
+            {
+              // Default to flex so we can use flexDirection
+              display: 'flex',
+
+              // Your conditional logic goes right here!
+              flexDirection:
+                !currentLocationData[9] && !currentLocationData[10]
+                  ? 'column'
+                  : 'row',
+            },
+          ]}>
           <Text style={styles.headerText}>Rectification Date & Time: </Text>
 
-          {!locationData[9] && !locationData[10] ? (
+          {!currentLocationData[9] && !currentLocationData[10] ? (
             <View style={styles.inputSection}>
               {/* Date Picker Button */}
               <TouchableOpacity
@@ -328,7 +421,7 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
                   onChange={(event, date) => handleTimePicked(event, date)}
                 />
               )}
-              <TextInput
+              {/* <TextInput
                 style={styles.input}
                 placeholder="Nature of Problem"
                 value={ProblemNature}
@@ -336,7 +429,21 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
                   // console.log('ProblemNature input:', text); // <-- Check what's actually typed
                   setProblemNature(text);
                 }}
+              /> */}
+              <TextInput
+                style={[
+                  styles.input,
+                  ProblemWarning ? {borderColor: 'red', color: 'black'} : null,
+                ]} // Optional: Turn border red on error
+                placeholder="Remarks"
+                placeholderTextColor="#333"
+                value={ProblemNature}
+                onChangeText={handleProblemNatureTextChange}
               />
+              {/* Show the warning text only if there is a warning */}
+              {ProblemWarning ? (
+                <Text style={styles.warningText}>{ProblemWarning}</Text>
+              ) : null}
               {/* Update Button */}
               <TouchableOpacity
                 style={[
@@ -354,16 +461,16 @@ const handleTimePicked = (event: { type: any; nativeEvent?: { timestamp: number;
           ) : (
             // If data exists, show existing date/time
             <Text style={styles.cellText}>
-              {locationData[9]
-                ? isISODate(locationData[9])
-                  ? dayjs(locationData[9]).format('DD/MM/YYYY')
-                  : locationData[9]
+              {currentLocationData[9]
+                ? isISODate(currentLocationData[9])
+                  ? dayjs(currentLocationData[9]).format('DD/MM/YYYY')
+                  : currentLocationData[9]
                 : 'N/A'}
               {' - '}
-              {locationData[10]
-                ? isISOTime(locationData[10])
-                  ? dayjs(locationData[10]).format('HH:mm')
-                  : locationData[10]
+              {currentLocationData[10]
+                ? isISOTime(currentLocationData[10])
+                  ? dayjs(currentLocationData[10]).format('HH:mm')
+                  : currentLocationData[10]
                 : 'N/A'}
             </Text>
           )}
@@ -410,7 +517,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   cellText: {
-    fontWeight: 'normal',
+    fontWeight: 'bold',
+    color: '#0051ff',
   },
   inputSection: {
     marginTop: 10,
@@ -456,6 +564,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 10,
     fontSize: 16,
+  },
+  warningText: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: -15, // Pulls it up closer to the input box
+    marginBottom: 15,
+    marginLeft: 5,
   },
 });
 
