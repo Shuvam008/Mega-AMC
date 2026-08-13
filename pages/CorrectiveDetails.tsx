@@ -201,13 +201,13 @@ const CorrectiveDetails = () => {
     const parseDateString = (dateStr: string) => {
       let [day, month, year] = dateStr.split('/');
 
-      let yearNum = parseInt(year);
-      // If the year is just '26', convert it to '2026'
+      let yearNum = parseInt(year, 10);
+      // If the year is just '26', convert it to 2026
       if (yearNum < 100) {
         yearNum += 2000;
       }
 
-      return new Date(yearNum, parseInt(month) - 1, parseInt(day));
+      return new Date(yearNum, parseInt(month, 10) - 1, parseInt(day, 10));
     };
 
     const dateObj1 = parseDateString(dateStr1);
@@ -216,14 +216,13 @@ const CorrectiveDetails = () => {
     // 2. Get the absolute difference in milliseconds
     const diffInMilliseconds = Math.abs(dateObj2.getTime() - dateObj1.getTime());
 
-    // 3. Convert to days
-    const rawDiffInDays = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
+    // 3. Convert to total days (e.g., 01/04 to 02/04 = 1)
+    const totalDays = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
 
-    // 4. Add 1 to make it inclusive
-    const totalDays = rawDiffInDays ;
+    // 4. First value is now strictly the total difference in days
+    const firstValue = totalDays;
 
-    // 5. Apply the 7-day cap logic
-    const firstValue = Math.min(totalDays, 7);
+    // 5. Second value extracts 7 and returns the remainder (0 if under 7)
     const secondValue = Math.max(0, totalDays - 7);
 
     return [firstValue, secondValue];
